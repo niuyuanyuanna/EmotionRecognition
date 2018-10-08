@@ -9,12 +9,11 @@ import os
 import numpy as np
 from PIL import Image
 import requests
-import shutil
 import time
 import json
 
-
 from dataset.load_fer2013_dataset import load_all_imagePath_label_list
+from config.configs import config
 
 
 def save_data_as_images(csv_file, save_path, label_dict):
@@ -49,7 +48,7 @@ def padding_image(imagePath_list, label_list, save_dir):
 
 
 def clean_fer_image(image_path, image_label, error_txt_file, norm_txt_file):
-    subscription_key = '137de087e5004613b29d0c10419574c7'
+    subscription_key = '2780db0320144f5d885b55d4c3bc6427'
     emotion_recognition_url = "https://api.cognitive.azure.cn/face/v1.0/detect"
     headers = {'Ocp-Apim-Subscription-Key': subscription_key, 'Content-Type': 'application/octet-stream'}
     params = {
@@ -99,8 +98,9 @@ def save_return_info(info_list, save_txt_path):
 def creat_info_list(padidng_image_path_list, padding_label_list, error_txt_file, norm_txt_file):
     error_str_list = []
     norm_str_list = []
-    for i in range(34947, len(padding_label_list)):
-        save_string, is_error = clean_fer_image(padidng_image_path_list[i], padding_label_list[i], error_txt_file, norm_txt_file)
+    for i in range(0, len(padding_label_list)):
+        save_string, is_error = clean_fer_image(padidng_image_path_list[i], padding_label_list[i], error_txt_file,
+                                                norm_txt_file)
         if is_error:
             error_str_list.append(save_string)
             print('error: %s' % padidng_image_path_list[i])
@@ -112,12 +112,41 @@ def creat_info_list(padidng_image_path_list, padding_label_list, error_txt_file,
     return error_str_list, norm_str_list
 
 
+# ========================= clean后发现部分数据未被清理 =================================
+# =====需要将未被清理到的数据重新构建list，送入clean函数中================================
+
+def load_diff_file(diff_file_path):
+    diff_list = []
+    diff_label = []
+    with open(diff_file_path, 'rb') as fid:
+        for line in fid:
+            line = line.decode()
+            line = line.strip()
+            diff_list.append(line)
+
+            image_name = os.path.basename(line)
+            label = image_name.split('_')[0]
+            diff_label.append(label)
+    return diff_list, diff_label
+
+
+def clean_diff_file(diff_list, diff_label, error_txt_file, norm_txt_file):
+    for i in range(len(diff_list)):
+        save_str, is_error = clean_fer_image(diff_list[i], diff_label[i], error_txt_file, norm_txt_file)
+        print(i)
+        if is_error:
+            print('error: %s' % save_str)
+
+        else:
+            print('normal: %s' % save_str)
+        time.sleep(5)
+
+
 if __name__ == '__main__':
-    database_path = 'E:/liuyuan/DataCenter/DatasetFER2013/fer2013'
-    csv_file = os.path.join(database_path, 'fer2013.csv')
-    save_path = os.path.join(database_path, 'rebuild_images')
-    addBlank_path = os.path.join(database_path, 'padding_images')
-    clean_path = os.path.join(database_path, 'cleaned_images')
+    csv_file = config.dataset.fer2013.origin_csv_file
+    save_path = config.dataset.fer2013.rebuild_image_from_csv
+    addBlank_path = config.dataset.fer2013.padding_image_path
+    clean_path = config.dataset.fer2013.cleaned_face_imgs_path
 
     label_dict = {0: 'anger', 1: 'disgust', 2: 'fear', 3: 'happy', 4: 'sad', 5: 'surprise', 6: 'neutral'}
     # save_data_as_images(csv_file, save_path, label_dict)
@@ -125,14 +154,15 @@ if __name__ == '__main__':
     # # padding images
     # add_blank_to_image(imagePath_list, label_list, addBlank_path)
 
-    padidng_image_path_list, padding_label_list = load_all_imagePath_label_list(addBlank_path)
+    # padidng_image_path_list, padding_label_list = load_all_imagePath_label_list(addBlank_path)
     # use microsoft api clean images
-    error_txt_file= os.path.join(clean_path, 'error_iamge.txt')
-    norm_txt_file = os.path.join(clean_path, 'norm_image.txt')
-    error_str_list, norm_str_list = creat_info_list(padidng_image_path_list, padding_label_list, error_txt_file, norm_txt_file)
+    # error_txt_file = os.path.join(clean_path, 'error_image.txt')
+    # norm_txt_file = os.path.join(clean_path, 'norm_image.txt')
+    # error_str_list, norm_str_list = creat_info_list(padidng_image_path_list, padding_label_list, error_txt_file, norm_txt_file)
 
-    # save_return_info(error_str_list, error_txt_file)
-    # save_return_info(norm_str_list, norm_txt_file)
+    diff_error_txt_file = os.path.join(clean_path, 'diff_error_image.txt')
+    diff_norm_txt_file = os.path.join(clean_path, 'diff_norm_image.txt')
+    diff_file_path = os.path.join(clean_path, 'diff_list.txt')
+    diff_list, diff_label = load_diff_file(diff_file_path)
 
-
-
+    clean_diff_file(diff_list, diff_label, diff_error_txt_file, diff_norm_txt_file)

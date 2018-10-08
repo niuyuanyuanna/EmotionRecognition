@@ -14,10 +14,12 @@ config.data_root_path = 'E:/liuyuan/DataCenter'
 config.dataset = edict()
 config.dataset.ck = edict()
 config.dataset.fer2013 = edict()
+config.dataset.raf = edict()
 config.model = edict()
 config.tmp = edict()
 
-config.dataset.input_resolution = [64, 64]
+config.dataset.input_resolution = [28, 28]
+
 
 config.dataset.ck.data_path = os.path.join(config.data_root_path, 'DatasetCK+')
 config.dataset.ck.origin_img_path = os.path.join(config.dataset.ck.data_path, 'origin_imgs')
@@ -35,11 +37,16 @@ config.dataset.ck.total_train_TFRecord_file_path = os.path.join(config.dataset.c
 
 config.dataset.fer2013.data_path = os.path.join(config.data_root_path, 'DatasetFER2013/face_imgs')
 config.dataset.fer2013.origion_path = os.path.join(config.dataset.fer2013.data_path, 'train_origion')
-config.dataset.fer2013.cleaned_face_imgs_path = os.path.join(config.dataset.fer2013.data_path, 'cleaned/detection')
-config.dataset.fer2013.cleaned_emotion_imgs_path = os.path.join(config.dataset.fer2013.data_path, 'cleaned/recognition')
-config.dataset.fer2013.data_file = os.path.join(config.dataset.fer2013.data_path, 'test')
+config.dataset.fer2013.test_data_file = os.path.join(config.dataset.fer2013.data_path, 'test')
 config.dataset.fer2013.val_data_file = os.path.join(config.dataset.fer2013.data_path, 'val')
 config.dataset.fer2013.total_train_data_file = os.path.join(config.dataset.fer2013.data_path, 'train_enhanced_sorted')
+
+config.dataset.fer2013.data_path_new = os.path.join(config.data_root_path, 'DatasetFER2013/fer2013')
+config.dataset.fer2013.cleaned_face_imgs_path = os.path.join(config.dataset.fer2013.data_path_new, 'cleaned_images')
+config.dataset.fer2013.origin_csv_file = os.path.join(config.dataset.fer2013.data_path_new, 'fer2013.csv')
+config.dataset.fer2013.rebuild_image_from_csv = os.path.join(config.dataset.fer2013.data_path_new, 'rebuild_images')
+config.dataset.fer2013.padding_image_path = os.path.join(config.dataset.fer2013.data_path_new, 'padding_images')
+config.dataset.fer2013.face_image_path = os.path.join(config.dataset.fer2013.data_path_new, 'face_images')
 
 config.dataset.fer2013.tfRecord_path = os.path.join(config.dataset.fer2013.data_path, 'TFRecord')
 config.dataset.fer2013.train_TFRecord_file_path = os.path.join(config.dataset.fer2013.tfRecord_path, 'train.tfrecords')
@@ -47,6 +54,12 @@ config.dataset.fer2013.test_TFRecord_file_path = os.path.join(config.dataset.fer
 config.dataset.fer2013.val_TFRecord_file_path = os.path.join(config.dataset.fer2013.tfRecord_path, 'val.tfrecords')
 config.dataset.fer2013.total_image_TFRecord_file_path = os.path.join(config.dataset.fer2013.tfRecord_path, 'train_total.tfrecords')
 config.dataset.fer2013.total_train_TFRecord_file_path = os.path.join(config.dataset.fer2013.tfRecord_path, 'train_total.tfrecords')
+
+config.dataset.raf.RAF_path = os.path.join(config.data_root_path, 'RAF-DB')
+config.dataset.raf.aligned_image_path = os.path.join(config.dataset.raf.RAF_path, 'Image/aligned')
+config.dataset.raf.label_list_path = os.path.join(config.dataset.raf.RAF_path, 'EmoLabel')
+config.dataset.raf.b_g_r_mean = [108.74949161620336, 121.93682191782138, 129.882933212282]
+config.dataset.raf.b_g_r_std = [76.27990887272082, 72.2227214967396, 73.87829834580016]
 
 config.model.root_path = os.path.join(config.data_root_path, 'Models')
 config.model.inception_tf_model = os.path.join(config.model.root_path, 'Inception-V3')
@@ -91,6 +104,7 @@ assert config.network.split('#')[0] in config.support_network
 config.out_classes = [24, 300]
 config.epoch = 60
 config.train.batch_size = 60
+config.train.repeat = 1
 config.test.batch_size = 1500
 config.data_loader_num_workers = 8
 config.num_gpu = 1
@@ -111,3 +125,10 @@ config.lr_params.warm_up_epoch = 2
 
 config.sample_test = None
 config.DEBUG = False
+
+config.pre_params = edict()
+config.pre_params.window = True
+config.pre_params.threshold = 0.0
+config.pre_params.ignore_multi = True
+config.pre_params.grow = 10
+config.pre_params.min_proportion = 0.1  # 最小比例

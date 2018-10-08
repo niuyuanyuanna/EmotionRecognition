@@ -2,6 +2,8 @@
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, Activation
 from keras.layers.convolutional import Conv2D, MaxPooling2D
+from keras.applications import ResNet50
+
 
 import os
 
@@ -107,4 +109,14 @@ def make_conv13_network(dropout):
     model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
     model_path = os.path.join(config.tmp_kerase_model_save_path, 'model_conv13.h5')
     model.save(model_path)
+    return model
+
+
+def make_resnet():
+    model = Sequential()
+    resnet = ResNet50(include_top=False, pooling='avg')
+    model.add(resnet)
+    model.add(Dense(7))
+    model.layers[0].trainable = False
+    model_path = os.path.join(config.tmp_kerase_model_save_path, 'model_resnet50.h5')
     return model
