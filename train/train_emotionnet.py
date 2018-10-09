@@ -7,6 +7,9 @@
 import numpy as np
 
 from model.keras_models import make_resnet
+from dataset.load_raf_dataset import load_normal_list
+from util.image_aug import aug_img_func
+from config.configs import config
 
 
 class AverageMeter(object):
@@ -258,3 +261,30 @@ class EmotionNet():
         confusion.print_confusion()
         confusion.print_latex(top1.avg)
         return losses.avg, top1.avg
+
+
+def gen():
+    train_img_list, train_label = load_normal_list('path')
+    index = 0
+    while True:
+        image = cv2.imread(train_img_list[index])
+        image = aug_img_func(image, config.train.aug_strategy, config)
+        label = train_label[index]
+        yield (image, label)
+        index += 1
+        if index == len(train_img_list):
+            index = 0
+
+def train(X_train, Y_train):
+
+
+
+
+def creat_dataset(sess):
+    data = tf.data.Dataset.from_generator(gen, (tf.float32, tf.int32),
+                                          (tf.TensorShape([100, 100, 3]), tf.TensorShape([])))
+    data = data.batch(128)
+    data = data.make_one_shot_iterator()
+    with tf.Session() as sess:
+        for i in range(1000):
+            images, labels = data.get_next()

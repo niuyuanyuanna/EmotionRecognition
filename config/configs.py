@@ -20,7 +20,6 @@ config.tmp = edict()
 
 config.dataset.input_resolution = [28, 28]
 
-
 config.dataset.ck.data_path = os.path.join(config.data_root_path, 'DatasetCK+')
 config.dataset.ck.origin_img_path = os.path.join(config.dataset.ck.data_path, 'origin_imgs')
 config.dataset.ck.label_data_path = os.path.join(config.dataset.ck.data_path, 'origin_labels')
@@ -71,16 +70,15 @@ config.tmp.root_path = os.path.join(config.data_root_path, 'EmotionLog')
 config.tmp.model_graph = os.path.join(config.tmp.root_path, 'graph_path')
 
 
-
 # train detail
 config.train = edict()
 config.train.split_val = 0.2
 config.train.aug_strategy = edict()
 config.train.aug_strategy.resize = True
-config.train.aug_strategy.resize_size = 64
+config.train.aug_strategy.resize_size = 100
 config.train.aug_strategy.normalize = True
 config.train.aug_strategy.flip = True
-config.train.aug_strategy.random_rotate = True
+config.train.aug_strategy.random_rotate = False
 config.train.aug_strategy.random_crop = False
 config.train.aug_strategy.random_color = False
 config.train.aug_strategy.max_rotate_angle = 20
@@ -132,3 +130,4 @@ config.pre_params.threshold = 0.0
 config.pre_params.ignore_multi = True
 config.pre_params.grow = 10
 config.pre_params.min_proportion = 0.1  # 最小比例
+config.pre_params.resize = [100, 100]

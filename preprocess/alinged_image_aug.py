@@ -77,11 +77,6 @@ def normalize(image, b_g_r_mean, b_g_r_std):
     return image
 
 
-def resize(src_image, size):
-    image = cv2.resize(src_image, (size, size))
-    return image
-
-
 def aug_img_func(image, aug_strategy, config):
     if aug_strategy.flip:
         seed = random.random()
@@ -97,9 +92,4 @@ def aug_img_func(image, aug_strategy, config):
         image = random_color(image)
     if aug_strategy.normalize:
         image = normalize(image, config.dataset.b_g_r_mean, config.dataset.b_g_r_std)
-    if aug_strategy.resize:
-        image = resize(image, 64)
     return image
-
-
-def
