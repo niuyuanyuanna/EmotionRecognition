@@ -24,8 +24,9 @@ if __name__ == '__main__':
     var_b = 0
     count = len(train_image_list)
     for image_name in train_image_list:
-        img = cv2.imread(image_name)
-        img = cv2.resize(img, config.pre_params.resize)
+        image_path = os.path.join(config.dataset.raf.aligned_image_path, image_name)
+        img = cv2.imread(image_path)
+        img = cv2.resize(img, (100, 100))
         sum_b += img[:, :, 0].mean()
         sum_g += img[:, :, 1].mean()
         sum_r += img[:, :, 2].mean()
@@ -34,19 +35,24 @@ if __name__ == '__main__':
     sum_b = sum_b / count
     img_mean = [sum_r, sum_g, sum_b]
     print(img_mean)
-
+    '[146.67694408768622, 114.62698965039486, 102.31048248716525]'
+    sum_list = [146.67694408768622, 114.62698965039486, 102.31048248716525]
+    sum_r = sum_list[0]
+    sum_g = sum_list[1]
+    sum_b = sum_list[2]
     for image_name in train_image_list:
-        img = cv2.imread(image_name)
-        img = cv2.resize(img, config.pre_params.resize)
+        image_path = os.path.join(config.dataset.raf.aligned_image_path, image_name)
+        img = cv2.imread(image_path)
+        img = cv2.resize(img, (100, 100))
         var_b += np.square(img[:, :, 0].mean() - sum_b)
         var_g += np.square(img[:, :, 1].mean() - sum_g)
         var_r += np.square(img[:, :, 2].mean() - sum_r)
     std_r = np.sqrt(var_r / (count - 1))
     std_g = np.sqrt(var_g / (count - 1))
     std_b = np.sqrt(var_b / (count - 1))
-
     img_std = [std_r, std_g, std_b]
     print(img_std)
+    '[38.783743581401644, 34.66747586689521, 36.66802127661255]'
 
 
 

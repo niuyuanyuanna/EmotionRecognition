@@ -57,8 +57,8 @@ config.dataset.fer2013.total_train_TFRecord_file_path = os.path.join(config.data
 config.dataset.raf.RAF_path = os.path.join(config.data_root_path, 'RAF-DB')
 config.dataset.raf.aligned_image_path = os.path.join(config.dataset.raf.RAF_path, 'Image/aligned')
 config.dataset.raf.label_list_path = os.path.join(config.dataset.raf.RAF_path, 'EmoLabel')
-config.dataset.raf.b_g_r_mean = [108.74949161620336, 121.93682191782138, 129.882933212282]
-config.dataset.raf.b_g_r_std = [76.27990887272082, 72.2227214967396, 73.87829834580016]
+config.dataset.raf.r_g_b_mean = [146.67694408768622, 114.62698965039486, 102.31048248716525]
+config.dataset.raf.r_g_b_std = [38.783743581401644, 34.66747586689521, 36.66802127661255,]
 
 config.model.root_path = os.path.join(config.data_root_path, 'Models')
 config.model.inception_tf_model = os.path.join(config.model.root_path, 'Inception-V3')
@@ -77,33 +77,37 @@ config.train.aug_strategy = edict()
 config.train.aug_strategy.resize = True
 config.train.aug_strategy.resize_size = 100
 config.train.aug_strategy.normalize = True
-config.train.aug_strategy.flip = True
+config.train.aug_strategy.random_lf_flip = True
+config.train.aug_strategy.random_updown_flip = False
 config.train.aug_strategy.random_rotate = False
 config.train.aug_strategy.random_crop = False
-config.train.aug_strategy.random_color = False
+config.train.aug_strategy.random_brightness = True
+config.train.aug_strategy.random_saturation = True
+config.train.aug_strategy.random_contrast = True
+config.train.aug_strategy.random_lighting = True
 config.train.aug_strategy.max_rotate_angle = 20
 
-# test
+# test detail
 config.test = edict()
 config.test.aug_strategy = edict()
 config.test.aug_strategy.resize = True
-config.test.aug_strategy.resize_size = 64
+config.test.aug_strategy.resize_size = 100
 config.test.aug_strategy.normalize = True
-config.test.aug_strategy.flip = False
+config.test.aug_strategy.random_lf_flip = False
+config.test.aug_strategy.random_updown_flip = False
 config.test.aug_strategy.random_rotate = False
 config.test.aug_strategy.random_crop = False
-config.test.aug_strategy.random_color = False
+config.test.aug_strategy.random_brightness = False
+config.test.aug_strategy.random_saturation = False
+config.test.aug_strategy.random_contrast = False
+config.test.aug_strategy.random_lighting = False
 config.test.aug_strategy.max_rotate_angle = 20
 
 # model params
-config.support_network = ['ResNet']
-config.network = "ResNet#50"
-assert config.network.split('#')[0] in config.support_network
-config.out_classes = [24, 300]
 config.epoch = 60
 config.train.batch_size = 60
 config.train.repeat = 1
-config.test.batch_size = 1500
+config.test.batch_size = 256
 config.data_loader_num_workers = 8
 config.num_gpu = 1
 
@@ -130,4 +134,4 @@ config.pre_params.threshold = 0.0
 config.pre_params.ignore_multi = True
 config.pre_params.grow = 10
 config.pre_params.min_proportion = 0.1  # 最小比例
-config.pre_params.resize = [100, 100]
+config.pre_params.resize = (100, 100)

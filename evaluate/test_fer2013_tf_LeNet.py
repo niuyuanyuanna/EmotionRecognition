@@ -11,7 +11,7 @@ import tensorflow as tf
 
 from model.leNet_inference import inference
 from dataset.format_batch import get_batch
-import train_fer2013_tf_LeNet as trainLe
+from train import train_fer2013_tf_LeNet as trainLe
 from config.configs import config
 
 

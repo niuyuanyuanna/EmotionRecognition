@@ -4,92 +4,171 @@
 # @Author  : NYY
 # @Site    : www.niuyuanyuanna.git.io
 # @File    : image_aug.py
-import cv2
-import math
-import random
-from PIL import ImageEnhance, Image
+import os
 import numpy as np
+import scipy.ndimage as ndi
+from scipy.misc import imread, imresize
 
 
-def resize_image(src_image, resize_size):
-    return cv2.resize(src_image, (resize_size, resize_size), interpolation=cv2.INTER_CUBIC)
+class ImageGenerator(object):
+    def __init__(self, train_image_names, train_image_labels, test_image_names, test_image_labels, config):
+        self.config = config
+        self.train_image_names = train_image_names
+        self.train_image_label = train_image_labels
+        self.test_image_names = test_image_names
+        self.test_image_labels = test_image_labels
 
+    def do_random_crop(self, image_array):
+        height = image_array.shape[0]
+        width = image_array.shape[1]
+        x_offset = np.random.uniform(0, 0.3 * width)
+        y_offset = np.random.uniform(0, 0.3 * height)
+        offset = np.array([x_offset, y_offset])
+        scale_factor = np.random.uniform(0.75, 1.25)
+        crop_matrix = np.array([[scale_factor, 0],
+                                [0, scale_factor]])
 
-# horizontally
-def flip_image(src_image):
-    return cv2.flip(src_image, 1)
+        image_array = np.rollaxis(image_array, axis=-1, start=0)
+        image_channel = [ndi.interpolation.affine_transform(image_channel,
+                         crop_matrix, offset=offset, order=0, mode='nearest',
+                         cval=0.0) for image_channel in image_array]
 
+        image_array = np.stack(image_channel, axis=0)
+        image_array = np.rollaxis(image_array, 0, 3)
+        return image_array
 
-def rotate_image(src_image, angle):
-    width = src_image.shape[1]
-    height = src_image.shape[0]
-    radian = angle/180.0*math.pi
-    sin = math.sin(radian)
-    cos = math.cos(radian)
-    new_width = int(abs(width * cos) + abs(height * sin))
-    new_height = int(abs(width * sin) + abs(height * cos))
-    """
-    [ a   b   (1-a)*center_x-b*center_y,
-      -b  a   b*center_x - (1-a)*center_y
-    ]
-    a = scale*cos
-    b = scale*sin
-    """''
-    rotate_matrix = cv2.getRotationMatrix2D((width/2.0, height/2), angle, 1.0)
-    rotate_matrix[0, 2] += (new_width - width) / 2.0
-    rotate_matrix[1, 2] += (new_height - height) / 2.0
-    dst_img = cv2.warpAffine(src_image, rotate_matrix, (new_width, new_height), flags=cv2.INTER_LINEAR)
-    return dst_img
+    def do_random_rotation(self, image_array):
+        height = image_array.shape[0]
+        width = image_array.shape[1]
+        x_offset = np.random.uniform(0, 0.3 * width)
+        y_offset = np.random.uniform(0, 0.3 * height)
+        offset = np.array([x_offset, y_offset])
+        scale_factor = np.random.uniform(0.75, 1.25)
+        crop_matrix = np.array([[scale_factor, 0],
+                                [0, scale_factor]])
 
+        image_array = np.rollaxis(image_array, axis=-1, start=0)
+        image_channel = [ndi.interpolation.affine_transform(image_channel,
+                                                            crop_matrix, offset=offset, order=0, mode='nearest',
+                                                            cval=0.0) for image_channel in image_array]
 
-def random_crop(src_image, max_jitter=5, keep_size=True):
-    width = src_image.shape[1]
-    height = src_image.shape[0]
-    roi = [math.floor(random.uniform(0, max_jitter)), math.floor(random.uniform(0, max_jitter)),
-           math.ceil(width-random.uniform(0, max_jitter)), math.ceil(height-random.uniform(0, max_jitter))]
-    img_roi = src_image[roi[1]:roi[3]+1, roi[0]:roi[2]+1, :]
-    if keep_size:
-        img_roi = cv2.resize(img_roi, (width, height), interpolation=cv2.INTER_LINEAR)
-    return img_roi
+        image_array = np.stack(image_channel, axis=0)
+        image_array = np.rollaxis(image_array, 0, 3)
+        return image_array
 
+    def _gray_scale(self, image_array):
+        return image_array.dot([0.299, 0.587, 0.114])
 
-def random_color(src_image):
-    """
-    :param src_image:
-    :return: image after random color, brightness, contrast, sharpness adjustment
-    """
-    src_image = Image.fromarray(src_image)
-    random_factor = np.random.randint(0, 31) / 10.
-    color_image = ImageEnhance.Color(src_image).enhance(random_factor)
-    random_factor = np.random.randint(10, 21) / 10.
-    brightness_image = ImageEnhance.Brightness(color_image).enhance(random_factor)
-    random_factor = np.random.randint(10, 21) / 10.
-    contrast_image = ImageEnhance.Contrast(brightness_image).enhance(random_factor)
-    random_factor = np.random.randint(0, 31) / 10.
-    return np.array(ImageEnhance.Sharpness(contrast_image).enhance(random_factor))
+    def saturation(self, image_array):
+        gray_scale = self._gray_scale(image_array)
+        alpha = 2.0 * np.random.random() * 0.5
+        alpha = alpha + 1 - 0.5
+        image_array = (alpha * image_array + (1 - alpha) *
+                       gray_scale[:, :, None])
+        return np.clip(image_array, 0, 255)
 
+    def brightness(self, image_array):
+        alpha = 2 * np.random.random() * 0.5
+        alpha = alpha + 1 - 0.5
+        image_array = alpha * image_array
+        return np.clip(image_array, 0, 255)
 
-def normalize(image):
-    image = np.array(image, dtype=np.float32)
-    image = image * (1./ 255) -0.5
-    return image
+    def contrast(self, image_array):
+        gray_scale = (self._gray_scale(image_array).mean() *
+                      np.ones_like(image_array))
+        alpha = 2 * np.random.random() * 0.5
+        alpha = alpha + 1 - 0.5
+        image_array = image_array * alpha + (1 - alpha) * gray_scale
+        return np.clip(image_array, 0, 255)
 
+    def lighting(self, image_array):
+        covariance_matrix = np.cov(image_array.reshape(-1, 3) /
+                                   255.0, rowvar=False)
+        eigen_values, eigen_vectors = np.linalg.eigh(covariance_matrix)
+        noise = np.random.randn(3) * 0.5
+        noise = eigen_vectors.dot(eigen_values * noise) * 255
+        image_array = image_array + noise
+        return np.clip(image_array, 0, 255)
 
-def aug_img_func(image, aug_strategy, config):
-    if aug_strategy.flip:
-        seed = random.random()
-        if seed > 0.7:
-            image = flip_image(image)
-    if aug_strategy.random_rotate:
-        max_angle = aug_strategy.max_rotate_angle
-        rotate_angle = random.randint(-max_angle, max_angle)
-        image = rotate_image(image, rotate_angle)
-    if aug_strategy.random_crop:
-        image = random_crop(image)
-    if aug_strategy.random_color:
-        image = random_color(image)
-    if aug_strategy.resize:
-        image = resize_image(image, config.train.aug_strategy.resize_size)
-    if aug_strategy.normalize:
-        image = normalize(image)
-    return image
+    def horizontal_flip(self, image_array):
+        if np.random.random() < 0.5:
+            image_array = image_array[:, ::-1]
+        return image_array
+
+    def vertical_flip(self, image_array):
+        if np.random.random() < 0.5:
+            image_array = image_array[::-1]
+        return image_array
+
+    def normalize(self, image_array, r_g_b_mean, r_g_b_std):
+        r_g_b_mean = np.tile(
+            np.array(r_g_b_mean).reshape(1, -1),
+            (1, image_array.shape[0] * image_array.shape[1])).reshape(image_array.shape)
+        r_g_b_std = np.tile(
+            np.array(r_g_b_std).reshape(1, -1),
+            (1, image_array.shape[0] * image_array.shape[1])).reshape(image_array.shape)
+        image = np.array(image_array, dtype=np.float32)
+        image = (image - r_g_b_mean) / r_g_b_std
+        return image
+
+    def transform(self, image_array, aug_strategy, config):
+        if aug_strategy.random_crop:
+            image_array = self.do_random_crop(image_array)
+        if aug_strategy.random_rotate:
+            image_array = self.do_random_rotation(image_array)
+        if aug_strategy.random_brightness:
+            image_array = self.brightness(image_array)
+        if aug_strategy.random_saturation:
+            image_array = self.saturation(image_array)
+        if aug_strategy.random_contrast:
+            image_array = self.contrast(image_array)
+        if aug_strategy.random_lighting:
+            image_array = self.lighting(image_array)
+        if aug_strategy.random_lf_flip:
+            image_array = self.horizontal_flip(image_array)
+        if aug_strategy.random_updown_flip:
+            image_array = self.vertical_flip(image_array)
+        if aug_strategy.normalize:
+            image_array = self.normalize(image_array, config.dataset.raf.r_g_b_mean, config.dataset.raf.r_g_b_std)
+        return image_array
+
+    def formate_one_hot(self, label_list, num_classes=7):
+        integer_classes = np.asarray(label_list, dtype='int') - 1
+        num_samples = integer_classes.shape[0]
+        categorical = np.zeros((num_samples, num_classes))
+        categorical[np.arange(num_samples), integer_classes] = 1
+        return categorical
+
+    def flow(self, mode='train'):
+        while True:
+            if mode == 'train':
+                image_keys = self.train_image_names
+                label_list = self.train_image_label
+            else:
+                image_keys = self.test_image_names
+                label_list = self.test_image_labels
+
+            inputs = list()
+            targets = list()
+            for i, key in enumerate(image_keys):
+                image_path = os.path.join(self.config.dataset.raf.aligned_image_path, key)
+                image_array = imread(image_path)
+                image_array = imresize(image_array, (100, 100))
+                num_image_channels = len(image_array.shape)
+                if num_image_channels != 3:
+                    continue
+                ground_truth = label_list[i]
+                image_array = image_array.astype('float32')
+                if mode == 'train':
+                    image_array = self.transform(image_array, self.config.train.aug_strategy, self.config)
+                else:
+                    image_array = self.transform(image_array, self.config.test.aug_strategy, self.config)
+                inputs.append(image_array)
+                targets.append(ground_truth)
+                if len(targets) == self.config.train.batch_size:
+                    inputs = np.asarray(inputs)
+                    targets = np.asarray(targets)
+                    targets = self.formate_one_hot(targets)
+                    yield [{'input_1': inputs}, {'predictions': targets}]
+                    inputs = list()
+                    targets = list()
