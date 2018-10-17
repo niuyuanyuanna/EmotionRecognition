@@ -76,13 +76,14 @@ config.train.split_val = 0.2
 config.train.aug_strategy = edict()
 config.train.aug_strategy.resize = True
 config.train.aug_strategy.resize_size = 100
+config.train.aug_strategy.grayscal = True
 config.train.aug_strategy.normalize = True
 config.train.aug_strategy.random_lf_flip = True
 config.train.aug_strategy.random_updown_flip = False
 config.train.aug_strategy.random_rotate = False
 config.train.aug_strategy.random_crop = False
 config.train.aug_strategy.random_brightness = True
-config.train.aug_strategy.random_saturation = True
+config.train.aug_strategy.random_saturation = False
 config.train.aug_strategy.random_contrast = True
 config.train.aug_strategy.random_lighting = True
 config.train.aug_strategy.max_rotate_angle = 20
@@ -92,6 +93,7 @@ config.test = edict()
 config.test.aug_strategy = edict()
 config.test.aug_strategy.resize = True
 config.test.aug_strategy.resize_size = 100
+config.test.aug_strategy.grayscal = True
 config.test.aug_strategy.normalize = True
 config.test.aug_strategy.random_lf_flip = False
 config.test.aug_strategy.random_updown_flip = False
@@ -104,29 +106,16 @@ config.test.aug_strategy.random_lighting = False
 config.test.aug_strategy.max_rotate_angle = 20
 
 # model params
-config.epoch = 60
-config.train.batch_size = 60
+config.epoch = 10000
+config.train.batch_size = 32
 config.train.repeat = 1
 config.test.batch_size = 256
-config.data_loader_num_workers = 8
-config.num_gpu = 1
 
 # optimizer params
 config.momentum = 0.0
 config.weightDecay = 0.0
 config.alpha = 0.99
 config.epsilon = 1e-8
-
-config.lr_params = edict()
-config.lr_params.lr = 0.00125 * config.num_gpu * config.train.batch_size
-config.lr_params.lr_step = [40, 55]
-config.lr_params.decay = 0.1
-config.lr_params.warm_up = True
-config.lr_params.warm_up_lr = 0.001
-config.lr_params.warm_up_epoch = 2
-
-config.sample_test = None
-config.DEBUG = False
 
 config.pre_params = edict()
 config.pre_params.window = True

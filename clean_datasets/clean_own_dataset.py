@@ -103,7 +103,7 @@ def save_face_token(filepath, normal_txt_path, error_txt_path):
 
 
 def clean_images(images_list, normal_txt_path, error_txt_path):
-    for i in range(9563, len(images_list)):
+    for i in range(13477, len(images_list)):
         image_path = images_list[i]
         print('deal with %d th image' % i)
         save_face_token(image_path, normal_txt_path, error_txt_path)

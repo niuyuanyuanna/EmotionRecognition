@@ -32,11 +32,11 @@ def train():
 
     image_generator = ImageGenerator(train_image_names, train_image_labels, test_image_names, test_image_labels, config)
 
-    model = mini_XCEPTION(input_shape=(100, 100, 3), num_classes=7)
+    model = mini_XCEPTION(input_shape=(100, 100, 1), num_classes=7)
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     model.summary()
 
-    early_stop = EarlyStopping('val_loss', patience=100)
+    early_stop = EarlyStopping('val_loss', patience=50)
     reduce_lr = ReduceLROnPlateau('val_loss', factor=0.1,
                                   patience=int(50 / 4), verbose=1)
 

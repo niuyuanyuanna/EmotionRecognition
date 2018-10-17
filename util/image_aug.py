@@ -5,6 +5,7 @@
 # @Site    : www.niuyuanyuanna.git.io
 # @File    : image_aug.py
 import os
+import cv2
 import numpy as np
 import scipy.ndimage as ndi
 from scipy.misc import imread, imresize
@@ -56,6 +57,11 @@ class ImageGenerator(object):
         image_array = np.rollaxis(image_array, 0, 3)
         return image_array
 
+    def grascal(self, image_array):
+        image_array = cv2.cvtColor(image_array.astype('uint8'), cv2.COLOR_RGB2GRAY).astype('float32')
+        image_array = np.expand_dims(image_array, -1)
+        return image_array
+
     def _gray_scale(self, image_array):
         return image_array.dot([0.299, 0.587, 0.114])
 
@@ -100,22 +106,29 @@ class ImageGenerator(object):
             image_array = image_array[::-1]
         return image_array
 
-    def normalize(self, image_array, r_g_b_mean, r_g_b_std):
-        r_g_b_mean = np.tile(
-            np.array(r_g_b_mean).reshape(1, -1),
-            (1, image_array.shape[0] * image_array.shape[1])).reshape(image_array.shape)
-        r_g_b_std = np.tile(
-            np.array(r_g_b_std).reshape(1, -1),
-            (1, image_array.shape[0] * image_array.shape[1])).reshape(image_array.shape)
-        image = np.array(image_array, dtype=np.float32)
-        image = (image - r_g_b_mean) / r_g_b_std
-        return image
+    def normalize(self, image_array, r_g_b_mean, r_g_b_std, grayscal):
+        if grayscal:
+            image_array = image_array / 255.0
+            image_array = image_array - 0.5
+            image_array = image_array * 2.0
+        else:
+            r_g_b_mean = np.tile(
+                np.array(r_g_b_mean).reshape(1, -1),
+                (1, image_array.shape[0] * image_array.shape[1])).reshape(image_array.shape)
+            r_g_b_std = np.tile(
+                np.array(r_g_b_std).reshape(1, -1),
+                (1, image_array.shape[0] * image_array.shape[1])).reshape(image_array.shape)
+            image = np.array(image_array, dtype=np.float32)
+            image_array = (image - r_g_b_mean) / r_g_b_std
+
+        return image_array
 
     def transform(self, image_array, aug_strategy, config):
         if aug_strategy.random_crop:
             image_array = self.do_random_crop(image_array)
         if aug_strategy.random_rotate:
             image_array = self.do_random_rotation(image_array)
+
         if aug_strategy.random_brightness:
             image_array = self.brightness(image_array)
         if aug_strategy.random_saturation:
@@ -128,8 +141,14 @@ class ImageGenerator(object):
             image_array = self.horizontal_flip(image_array)
         if aug_strategy.random_updown_flip:
             image_array = self.vertical_flip(image_array)
+
+        if aug_strategy.grayscal:
+            image_array = self.grascal(image_array)
         if aug_strategy.normalize:
-            image_array = self.normalize(image_array, config.dataset.raf.r_g_b_mean, config.dataset.raf.r_g_b_std)
+            image_array = self.normalize(image_array,
+                                         config.dataset.raf.r_g_b_mean,
+                                         config.dataset.raf.r_g_b_std,
+                                         aug_strategy.grayscal)
         return image_array
 
     def formate_one_hot(self, label_list, num_classes=7):
