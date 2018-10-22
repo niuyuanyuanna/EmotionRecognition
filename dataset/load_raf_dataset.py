@@ -77,3 +77,8 @@ def load_normal_list(label_path):
             image_list.append(image_name)
             label_list.append(line[-1])
     return image_list, label_list
+
+
+if __name__ == '__main__':
+    creat_total_txt()
+    creat_split_txt()

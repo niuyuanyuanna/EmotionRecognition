@@ -172,7 +172,8 @@ class ImageGenerator(object):
             for i, key in enumerate(image_keys):
                 image_path = os.path.join(self.config.dataset.raf.aligned_image_path, key)
                 image_array = imread(image_path)
-                image_array = imresize(image_array, (100, 100))
+                image_array = imresize(image_array, (self.config.train.aug_strategy.resize_size,
+                                                     self.config.train.aug_strategy.resize_size))
                 num_image_channels = len(image_array.shape)
                 if num_image_channels != 3:
                     continue

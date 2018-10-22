@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Time    : 2018/10/8 14:46
+# @Time    : 2018/10/22 17:21
 # @Author  : NYY
 # @Site    : www.niuyuanyuanna.git.io
-# @File    : train_emotionnet.py
+# @File    : train_mobilenet.py
 import os
-
-from keras.callbacks import CSVLogger, ModelCheckpoint, EarlyStopping
-from keras.callbacks import ReduceLROnPlateau
 from random import shuffle
 
+from model.cnn import mobileNetv2
 from dataset.load_raf_dataset import load_normal_list
-from util.image_aug import ImageGenerator
 from config.configs import config
-from model.cnn import *
+from util.image_aug import ImageGenerator
+
+from keras.optimizers import Adam
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from keras.callbacks import CSVLogger, EarlyStopping
 
 
 def creat_path(path):
@@ -32,11 +33,12 @@ def train():
 
     image_generator = ImageGenerator(train_image_names, train_image_labels, test_image_names, test_image_labels, config)
 
-    model = mobileNetv2(input_shape=config.dataset.input_resolution, num_classes=7)
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    model.summary()
+    model = mobileNetv2(config.dataset.input_resolution, num_classes=7)
 
-    early_stop = EarlyStopping('val_loss', patience=50)
+    opt = Adam()
+    early_stop = EarlyStopping(monitor='val_acc', patience=30, verbose=0, mode='auto')
+    model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+    model.summary()
     reduce_lr = ReduceLROnPlateau('val_loss', factor=0.1,
                                   patience=int(50 / 4), verbose=1)
 
@@ -44,7 +46,6 @@ def train():
     trained_model_path = config.model.tmp_kerase_model_save_path
     creat_path(trained_model_path)
     creat_path(config.tmp.root_path)
-
     csv_logger = CSVLogger(log_file_path, append=False)
     model_names = os.path.join(trained_model_path, '.{epoch:02d}-{val_acc:.2f}.hdf5')
     model_checkpoint = ModelCheckpoint(model_names,
@@ -54,13 +55,13 @@ def train():
                                        save_weights_only=False)
     callbacks = [model_checkpoint, csv_logger, early_stop, reduce_lr]
 
-    # training model
-    model.fit_generator(image_generator.flow(mode='train'),
-                        steps_per_epoch=int(len(train_image_names) / config.train.batch_size),
-                        epochs=config.epoch, verbose=1,
-                        callbacks=callbacks,
-                        validation_data=image_generator.flow('val'),
-                        validation_steps=int(len(test_image_names) / config.train.batch_size))
+    model.fit_generator(
+        image_generator.flow(mode='train'),
+        validation_data=image_generator.flow('val'),
+        steps_per_epoch=int(len(train_image_names) / config.train.batch_size),
+        validation_steps=int(len(test_image_names) / config.train.batch_size),
+        epochs=config.epoch,
+        callbacks=callbacks)
 
 
 if __name__ == '__main__':

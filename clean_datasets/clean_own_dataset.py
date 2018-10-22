@@ -70,10 +70,9 @@ def save_face_token(filepath, normal_txt_path, error_txt_path):
     response = requests.post(http_url, data=data, files=files)
     if response.status_code != requests.codes.ok:
         error = response.json()
-        error = error['error']
-        error_code = error['code']
-        save_str = filepath + '\t' + '-1' + '\t' + '-1' + '\t' + '-1' +'\t' + error_code + '\n'
-        print('image error code: %s' % error_code)
+        error = error['error_message']
+        save_str = filepath + '\t' + '-1' + '\t' + '-1' + '\t' + '-1' +'\t' + error + '\n'
+        print('image error message: %s' % error)
         with open(error_txt_path, 'a+') as f:
             f.write(save_str)
             return
@@ -103,7 +102,7 @@ def save_face_token(filepath, normal_txt_path, error_txt_path):
 
 
 def clean_images(images_list, normal_txt_path, error_txt_path):
-    for i in range(13477, len(images_list)):
+    for i in range(42390, len(images_list)):
         image_path = images_list[i]
         print('deal with %d th image' % i)
         save_face_token(image_path, normal_txt_path, error_txt_path)
