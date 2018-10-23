@@ -12,7 +12,6 @@ from dataset.load_raf_dataset import load_normal_list
 from config.configs import config
 from util.image_aug import ImageGenerator
 
-from keras.optimizers import Adam
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.callbacks import CSVLogger, EarlyStopping
 
@@ -35,17 +34,16 @@ def train():
 
     model = mobileNetv2(config.dataset.input_resolution, num_classes=7)
 
-    opt = Adam()
-    early_stop = EarlyStopping(monitor='val_acc', patience=30, verbose=0, mode='auto')
-    model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     model.summary()
-    reduce_lr = ReduceLROnPlateau('val_loss', factor=0.1,
-                                  patience=int(50 / 4), verbose=1)
+    early_stop = EarlyStopping(monitor='val_acc', patience=30, verbose=0, mode='auto')
+    reduce_lr = ReduceLROnPlateau('val_loss', factor=0.1, patience=int(50 / 4), verbose=1)
 
     log_file_path = os.path.join(config.tmp.root_path, 'emotion_train.log')
     trained_model_path = config.model.tmp_kerase_model_save_path
     creat_path(trained_model_path)
     creat_path(config.tmp.root_path)
+
     csv_logger = CSVLogger(log_file_path, append=False)
     model_names = os.path.join(trained_model_path, '.{epoch:02d}-{val_acc:.2f}.hdf5')
     model_checkpoint = ModelCheckpoint(model_names,

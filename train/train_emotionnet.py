@@ -32,7 +32,7 @@ def train():
 
     image_generator = ImageGenerator(train_image_names, train_image_labels, test_image_names, test_image_labels, config)
 
-    model = mobileNetv2(input_shape=config.dataset.input_resolution, num_classes=7)
+    model = tiny_XCEPTION(input_shape=config.dataset.input_resolution, num_classes=7)
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     model.summary()
 

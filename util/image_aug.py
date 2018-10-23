@@ -118,9 +118,8 @@ class ImageGenerator(object):
             r_g_b_std = np.tile(
                 np.array(r_g_b_std).reshape(1, -1),
                 (1, image_array.shape[0] * image_array.shape[1])).reshape(image_array.shape)
-            image = np.array(image_array, dtype=np.float32)
-            image_array = (image - r_g_b_mean) / r_g_b_std
-
+            image_array = np.array(image_array, dtype=np.float32)
+            image_array = (image_array - r_g_b_mean) / r_g_b_std
         return image_array
 
     def transform(self, image_array, aug_strategy, config):

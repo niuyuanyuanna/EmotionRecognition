@@ -3,200 +3,353 @@
 # @Time    : 2018/10/18 10:54
 # @Author  : NYY
 # @Site    : www.niuyuanyuanna.git.io
-# @File    : tf_DAN.py
-import numpy as np
+# @File    : tf_dan.py
 import tensorflow as tf
 
-_BATCH_NORM_DECAY = 0.997
-_BATCH_NORM_EPSILON = 1e-5
-DEFAULT_VERSION = 2
+from model.dan_layer import  AffineTransformLayer, TransformParamsLayer, LandmarkImageLayer, LandmarkTransformLayer
+from utils import cyclic_learning_rate
 
 
-def batch_norm(inputs, training, data_format):
-    """Performs a batch normalization using a standard set of parameters."""
-    # We set fused=True for a significant performance boost.  See
-    # https://www.tensorflow.org/performance/performance_guide#common_fused_ops
-    return tf.layers.batch_normalization(inputs=inputs, axis=1 if data_format == 'channels_first' else -1,
-                                         momentum=_BATCH_NORM_DECAY, epsilon=_BATCH_NORM_EPSILON, center=True,
-                                         scale=True, training=training, fused=True)
+def NormRmse(GroudTruth, Prediction, n_landmark=68):
+    Gt = tf.reshape(GroudTruth, [-1, n_landmark, 2])
+    Pt = tf.reshape(Prediction, [-1, n_landmark, 2])
+    loss = tf.reduce_mean(
+        tf.sqrt(tf.reduce_sum(tf.squared_difference(Gt, Pt), 2)), 1)
+    norm = tf.norm(tf.reduce_mean(
+        Gt[:, 36:42, :], 1) - tf.reduce_mean(Gt[:, 42:48, :], 1), axis=1)
+    return loss / norm
 
 
-def vgg_block(inputs, filters, num_convs, training, kernel_size, maxpool, data_format):
-    for i in range(num_convs):
-        inputs = batch_norm(tf.layers.conv2d(inputs, filters, kernel_size, 1,
-                                             padding='same', activation=tf.nn.relu,
-                                             kernel_initializer=tf.glorot_uniform_initializer(),
-                                             data_format=data_format), training=training, data_format=data_format)
-    if maxpool:
-        inputs = tf.layers.max_pooling2d(inputs, 2, 2)
-
-    return inputs
+def augment(images, labels, labels_em):
+    brght_imgs = tf.image.random_brightness(images, max_delta=0.3)
+    cntrst_imgs = tf.image.random_contrast(
+        brght_imgs, lower=0.2, upper=1.8)
+    # hue_imgs = tf.image.random_hue(cntrst_imgs, max_delta=0.2)
+    return cntrst_imgs, labels, labels_em
 
 
-class Model(object):
+def emoDAN(MeanShapeNumpy, batch_size, nb_emotions=7,
+           lr_stage1=0.001, lr_stage2=0.001, n_landmark=68, IMGSIZE=224):
 
-    def __init__(self,
-                 num_lmark,
-                 img_size,
-                 filter_sizes,
-                 num_convs,
-                 kernel_size,
-                 data_format=None):
-        if not data_format:
-            data_format = ('channels_first' if tf.test.is_built_with_cuda() else 'channels_last')
+    InputImage = tf.placeholder(tf.float32, [None, IMGSIZE, IMGSIZE, 1])
+    GroundTruth = tf.placeholder(tf.float32, [None, n_landmark * 2])
+    Emotion_Labels = tf.placeholder(tf.int32, [None, ])
 
-        self.data_format = data_format
-        self.filter_sizes = filter_sizes
-        self.num_convs = num_convs
-        self.num_lmark = num_lmark
-        self.kernel_size = kernel_size
-        self.img_size = img_size
+    # dataset = tf.data.Dataset.from_tensor_slices((x, y, z)).batch(batch_size)
+    # iter_ = dataset.make_initializable_iterator()
+    # InputImage, GroundTruth, Emotion_Labels = iter_.get_next()
 
-        self.__pixels__ = tf.constant([(x, y) for y in range(self.img_size) for x in range(self.img_size)],
-                                      dtype=tf.float32, shape=[1, self.img_size, self.img_size, 2])
-        # self.__pixels__ = tf.tile(self.__pixels__,[num_lmark,1,1,1])
+    MeanShape = tf.constant(MeanShapeNumpy, dtype=tf.float32)
+    S1_isTrain = tf.placeholder(tf.bool)
+    S2_isTrain = tf.placeholder(tf.bool)
+    global_step = tf.Variable(0, trainable=False)
+    Ret_dict = {}
+    Ret_dict['InputImage'] = InputImage
+    Ret_dict['GroundTruth'] = GroundTruth
+    Ret_dict['Emotion_labels'] = Emotion_Labels
+    # Ret_dict['x'] = x
+    # Ret_dict['y'] = y
+    # Ret_dict['z'] = z
 
-    def __calc_affine_params(self, from_shape, to_shape):
-        from_shape = tf.reshape(from_shape, [-1, self.num_lmark, 2])
-        to_shape = tf.reshape(to_shape, [-1, self.num_lmark, 2])
+    Ret_dict['S1_isTrain'] = S1_isTrain
+    Ret_dict['S2_isTrain'] = S2_isTrain
 
-        from_mean = tf.reduce_mean(from_shape, axis=1, keepdims=True)
-        to_mean = tf.reduce_mean(to_shape, axis=1, keepdims=True)
+    InputImage, GroundTruth, Emotion_Labels = augment(
+        InputImage, GroundTruth, Emotion_Labels)
 
-        from_centralized = from_shape - from_mean
-        to_centralized = to_shape - to_mean
+    with tf.variable_scope('Stage1'):
 
-        dot_result = tf.reduce_sum(tf.multiply(from_centralized, to_centralized),
-                                   axis=[1, 2])
-        norm_pow_2 = tf.pow(tf.norm(from_centralized, axis=[1, 2]), 2)
+        S1_Conv1a = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                InputImage,
+                64,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S1_isTrain)
+        S1_Conv1b = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S1_Conv1a,
+                64,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S1_isTrain)
+        S1_Pool1 = tf.layers.max_pooling2d(S1_Conv1b, 2, 2, padding='same')
 
-        a = dot_result / norm_pow_2
-        b = tf.reduce_sum(
-            tf.multiply(from_centralized[:, :, 0], to_centralized[:, :, 1]) - tf.multiply(from_centralized[:, :, 1],
-                                                                                          to_centralized[:, :, 0]),
-            1) / norm_pow_2
+        S1_Conv2a = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S1_Pool1,
+                128,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S1_isTrain)
+        S1_Conv2b = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S1_Conv2a,
+                128,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S1_isTrain)
+        S1_Pool2 = tf.layers.max_pooling2d(S1_Conv2b, 2, 2, padding='same')
 
-        r = tf.reshape(tf.stack([a, b, -b, a], axis=1), [-1, 2, 2])
-        t = to_mean - tf.matmul(from_mean, r)
-        return r, t
+        S1_Conv3a = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S1_Pool2,
+                256,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S1_isTrain)
+        S1_Conv3b = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S1_Conv3a,
+                256,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S1_isTrain)
+        S1_Pool3 = tf.layers.max_pooling2d(S1_Conv3b, 2, 2, padding='same')
 
-    def __affine_image(self, imgs, r, t):
-        # The Tensor [imgs].format is [NHWC]
-        r = tf.matrix_inverse(r)
-        r = tf.matrix_transpose(r)
+        S1_Conv4a = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S1_Pool3,
+                512,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S1_isTrain)
+        S1_Conv4b = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S1_Conv4a,
+                512,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S1_isTrain)
+        S1_Pool4 = tf.layers.max_pooling2d(S1_Conv4b, 2, 2, padding='same')
 
-        rm = tf.reshape(tf.pad(r, [[0, 0], [0, 0], [0, 1]], mode='CONSTANT'), [-1, 6])
-        rm = tf.pad(rm, [[0, 0], [0, 2]], mode='CONSTANT')
+        S1_Pool4_Flat = tf.contrib.layers.flatten(S1_Pool4)
+        S1_DropOut = tf.layers.dropout(
+            S1_Pool4_Flat, 0.5, training=S1_isTrain)
 
-        tm = tf.contrib.image.translations_to_projective_transforms(tf.reshape(t, [-1, 2]))
-        rtm = tf.contrib.image.compose_transforms(rm, tm)
+        S1_Fc1 = tf.layers.batch_normalization(
+            tf.layers.dense(
+                S1_DropOut,
+                256,
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S1_isTrain,
+            name='S1_Fc1')
+        S1_Fc2 = tf.layers.dense(S1_Fc1, n_landmark * 2)
 
-        return tf.contrib.image.transform(imgs, rtm, "BILINEAR")
+        S1_Ret = S1_Fc2 + MeanShape
+        S1_Cost = tf.reduce_mean(NormRmse(GroundTruth, S1_Ret))
 
-    def __affine_shape(self, shapes, r, t, isinv=False):
-        if isinv:
-            r = tf.matrix_inverse(r)
-            t = tf.matmul(-t, r)
-        shapes = tf.matmul(shapes, r) + t
-        return shapes
+        with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS, 'Stage1')):
+            S1_Optimizer = tf.train.AdamOptimizer(lr_stage1).minimize(
+                S1_Cost, var_list=tf.get_collection(
+                    tf.GraphKeys.TRAINABLE_VARIABLES, "Stage1"))
 
-    def __gen_heatmap(self, shapes):
-        shapes = shapes[:, :, tf.newaxis, tf.newaxis, :]
-        value = self.__pixels__ - shapes
-        value = tf.norm(value, axis=-1)
-        value = 1.0 / (tf.reduce_min(value, axis=1) + 1.0)
-        value = tf.expand_dims(value, axis=-1)
-        return value
+    Ret_dict['S1_Ret'] = S1_Ret
+    Ret_dict['S1_Cost'] = S1_Cost
+    Ret_dict['S1_Optimizer'] = S1_Optimizer
 
-    def __call__(self,
-                 inputs_imgs,
-                 s1_training,
-                 s2_training,
-                 mean_shape,
-                 imgs_mean,
-                 imgs_std):
-        rd = {}
-        inputs_imgs = tf.reshape(inputs_imgs, [-1, self.img_size, self.img_size, 1])
-        tf.summary.image('image', inputs_imgs, max_outputs=6)
+    with tf.variable_scope('Stage2'):
 
-        rd['img'] = inputs_imgs
+        S2_AffineParam = TransformParamsLayer(S1_Ret, MeanShape)
+        S2_InputImage = AffineTransformLayer(InputImage, S2_AffineParam)
+        S2_InputLandmark = LandmarkTransformLayer(S1_Ret, S2_AffineParam)
+        S2_InputHeatmap = LandmarkImageLayer(S2_InputLandmark)
 
-        mean_shape = tf.reshape(mean_shape, [self.num_lmark, 2]) if mean_shape is not None else tf.zeros(
-            [self.num_lmark, 2], tf.float32)
-        imgs_mean = tf.reshape(imgs_mean, [self.img_size, self.img_size, 1]) if imgs_mean is not None else tf.zeros(
-            [self.img_size, self.img_size, 1], tf.float32)
-        imgs_std = tf.reshape(imgs_std, [self.img_size, self.img_size, 1]) if imgs_std is not None else tf.ones(
-            [self.img_size, self.img_size, 1], tf.float32)
+        S2_Feature = tf.reshape(tf.layers.dense(S1_Fc1,
+                                                int((IMGSIZE / 2) * (IMGSIZE / 2)),
+                                                activation=tf.nn.relu,
+                                                kernel_initializer=tf.glorot_uniform_initializer()),
+                                (-1,
+                                 int(IMGSIZE / 2),
+                                 int(IMGSIZE / 2),
+                                 1))
+        S2_FeatureUpScale = tf.image.resize_images(
+            S2_Feature, (IMGSIZE, IMGSIZE), 1)
 
-        imgs_mean_tensor = tf.get_variable('imgs_mean', trainable=False, initializer=imgs_mean)
-        imgs_std_tensor = tf.get_variable('imgs_std', trainable=False, initializer=imgs_std)
-        shape_mean_tensor = tf.get_variable('shape_mean', trainable=False, initializer=mean_shape)
+        S2_ConcatInput = tf.layers.batch_normalization(
+            tf.concat([S2_InputImage, S2_InputHeatmap, S2_FeatureUpScale], 3), training=S2_isTrain)
+        S2_Conv1a = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S2_ConcatInput,
+                64,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S2_isTrain)
+        S2_Conv1b = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S2_Conv1a,
+                64,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S2_isTrain)
+        S2_Pool1 = tf.layers.max_pooling2d(S2_Conv1b, 2, 2, padding='same')
 
-        inputs_imgs = (inputs_imgs - imgs_mean_tensor) / imgs_std_tensor
-        # Convert the inputs from channels_last (NHWC) to channels_first
-        # (NCHW).
-        # This provides a large performance boost on GPU.  See
-        # https://www.tensorflow.org/performance/performance_guide#data_formats
-        with tf.variable_scope('s1'):
-            inputs = inputs_imgs
+        S2_Conv2a = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S2_Pool1,
+                128,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S2_isTrain)
+        S2_Conv2b = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S2_Conv2a,
+                128,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S2_isTrain)
+        S2_Pool2 = tf.layers.max_pooling2d(S2_Conv2b, 2, 2, padding='same')
 
-            if self.data_format == 'channels_first':
-                inputs = tf.transpose(inputs, [0, 3, 1, 2])
+        S2_Conv3a = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S2_Pool2,
+                256,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S2_isTrain)
+        S2_Conv3b = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S2_Conv3a,
+                256,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S2_isTrain)
+        S2_Pool3 = tf.layers.max_pooling2d(S2_Conv3b, 2, 2, padding='same')
 
-            for i, num_filter in enumerate(self.filter_sizes):
-                inputs = vgg_block(inputs=inputs, filters=num_filter, num_convs=self.num_convs,
-                                   training=s1_training, kernel_size=self.kernel_size, maxpool=True,
-                                   data_format=self.data_format)
+        S2_Conv4a = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S2_Pool3,
+                512,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S2_isTrain)
+        S2_Conv4b = tf.layers.batch_normalization(
+            tf.layers.conv2d(
+                S2_Conv4a,
+                512,
+                3,
+                1,
+                padding='same',
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S2_isTrain)
+        S2_Pool4 = tf.layers.max_pooling2d(S2_Conv4b, 2, 2, padding='same')
 
-            inputs = tf.contrib.layers.flatten(inputs)
-            inputs = tf.layers.dropout(inputs, 0.5, training=s1_training)
+        S2_Pool4_Flat = tf.contrib.layers.flatten(S2_Pool4)
+        S2_DropOut = tf.layers.dropout(
+            S2_Pool4_Flat, 0.5, training=S2_isTrain)
 
-            s1_fc1 = tf.layers.dense(inputs, 256, activation=tf.nn.relu,
-                                     kernel_initializer=tf.glorot_uniform_initializer())
-            s1_fc1 = batch_norm(s1_fc1, s1_training, data_format=self.data_format)
+        S2_Fc1 = tf.layers.batch_normalization(
+            tf.layers.dense(
+                S2_DropOut,
+                256,
+                activation=tf.nn.relu,
+                kernel_initializer=tf.glorot_uniform_initializer()),
+            training=S2_isTrain)
+        S2_Fc2 = tf.layers.dense(S2_Fc1, n_landmark * 2)
 
-            s1_fc2 = tf.layers.dense(s1_fc1, self.num_lmark * 2, activation=None)
-            rd['s1_ret'] = tf.identity(tf.reshape(s1_fc2, [-1, self.num_lmark, 2]) + shape_mean_tensor,
-                                       name='output_landmark')
+        S2_Emotion = tf.layers.dense(S2_Fc1, nb_emotions)
+        Pred_Emotion = tf.nn.softmax(S2_Emotion)
+        S2_Pred_Emotion = tf.argmax(input=Pred_Emotion, axis=1)
 
-        with tf.variable_scope('s2'):
-            r, t = self.__calc_affine_params(rd['s1_ret'], shape_mean_tensor)
-            inputs = self.__affine_image(inputs_imgs, r, t)
-            s2_lmark = self.__affine_shape(rd['s1_ret'], r, t)
-            s2_heatmap = self.__gen_heatmap(s2_lmark)
-            s2_feature = tf.layers.dense(s1_fc1, (self.img_size // 2) ** 2, activation=tf.nn.relu,
-                                         kernel_initializer=tf.glorot_uniform_initializer())
+        correct_prediction = tf.equal(
+            Emotion_Labels, tf.cast(S2_Pred_Emotion, tf.int32))
+        emotion_accuracy = tf.reduce_mean(
+            tf.cast(correct_prediction, tf.float32))
 
-            s2_feature = tf.reshape(s2_feature, [-1, self.img_size // 2, self.img_size // 2, 1])
-            s2_feature_upscale = tf.image.resize_images(s2_feature, [self.img_size, self.img_size])
+        S2_Ret = LandmarkTransformLayer(
+            S2_Fc2 + S2_InputLandmark, S2_AffineParam, Inverse=True)
+        S2_Cost_landm = tf.reduce_mean(
+            NormRmse(GroundTruth, S2_Ret))  # cost for landmarks
 
-            tf.summary.image('heatmap', s2_heatmap, max_outputs=6)
-            tf.summary.image('feature', s2_feature, max_outputs=6)
-            tf.summary.image('image', inputs, max_outputs=6)
+        one_hot_labels = tf.one_hot(indices=tf.cast(
+            Emotion_Labels, tf.int32), depth=nb_emotions)
+        print_output = tf.Print(S2_Pred_Emotion, [
+                                Pred_Emotion, Emotion_Labels, S2_Pred_Emotion], summarize=100000)
+        S2_Cost_emotion = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+            labels=one_hot_labels, logits=S2_Emotion))  # loss for emotion prediction
+        Joint_Cost = 0.5 * S2_Cost_landm + 0.5 * S2_Cost_emotion
 
-            if self.data_format == 'channels_first':
-                inputs = tf.transpose(inputs, [0, 3, 1, 2])
-                s2_heatmap = tf.transpose(s2_heatmap, [0, 3, 1, 2])
-                s2_feature_upscale = tf.transpose(s2_feature_upscale, [0, 3, 1, 2])
+        learning_rate = cyclic_learning_rate(global_step,
+                                             learning_rate=0.0001,
+                                             max_lr=0.05,
+                                             step_size=10000)
 
-            inputs = tf.concat([inputs, s2_heatmap, s2_feature_upscale],
-                               axis=1 if self.data_format == 'channels_first' else 3)
-            inputs = batch_norm(inputs, s2_training, self.data_format)
+        with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS, 'Stage2')):
+            S2_Optimizer = tf.train.GradientDescentOptimizer(
+                learning_rate=learning_rate).minimize(
+                Joint_Cost,
+                var_list=tf.get_collection(
+                    tf.GraphKeys.TRAINABLE_VARIABLES,
+                    "Stage2"),
+                global_step=global_step)
 
-            for i, num_filter in enumerate(self.filter_sizes):
-                inputs = vgg_block(inputs=inputs, filters=num_filter, num_convs=self.num_convs,
-                                   training=s2_training, kernel_size=self.kernel_size, maxpool=True,
-                                   data_format=self.data_format)
+    Ret_dict['S2_Ret'] = S2_Ret
+    Ret_dict['S2_Cost'] = S2_Cost_landm
+    Ret_dict['S2_Optimizer'] = S2_Optimizer
 
-            inputs = tf.contrib.layers.flatten(inputs)
-            inputs = tf.layers.dropout(inputs, 0.5, training=s2_training)
+    Ret_dict['Joint_Cost'] = Joint_Cost
+    Ret_dict['Emotion_Accuracy'] = emotion_accuracy
+    Ret_dict['Pred_emotion'] = S2_Pred_Emotion
 
-            s2_fc1 = tf.layers.dense(inputs, 256, activation=tf.nn.relu,
-                                     kernel_initializer=tf.glorot_uniform_initializer())
-            s2_fc1 = batch_norm(s2_fc1, s2_training, data_format=self.data_format)
+    Ret_dict['S2_InputImage'] = S2_InputImage
+    Ret_dict['S2_InputLandmark'] = S2_InputLandmark
+    Ret_dict['S2_InputHeatmap'] = S2_InputHeatmap
+    Ret_dict['S2_FeatureUpScale'] = S2_FeatureUpScale
 
-            s2_fc2 = tf.layers.dense(s2_fc1, self.num_lmark * 2, activation=None)
-            s2_fc2 = tf.reshape(s2_fc2, [-1, self.num_lmark, 2]) + s2_lmark
-            rd['s2_ret'] = tf.identity(self.__affine_shape(s2_fc2, r, t, isinv=True), name='output_landmark')
+    Ret_dict['S2_Conv4b'] = S2_Conv4b
+    Ret_dict['S2_Conv4a'] = S2_Conv4a
+    Ret_dict['S2_Conv3a'] = S2_Conv3a
+    Ret_dict['S2_Conv3b'] = S2_Conv3b
 
-        return rd
+    Ret_dict['S2_Emotion'] = S2_Emotion
+
+    Ret_dict['lr'] = learning_rate
+
+    return Ret_dict

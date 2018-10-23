@@ -77,7 +77,7 @@ config.train.aug_strategy = edict()
 config.train.aug_strategy.resize = True
 config.train.aug_strategy.resize_size = 96
 config.train.aug_strategy.grayscal = False
-config.train.aug_strategy.normalize = False
+config.train.aug_strategy.normalize = True
 config.train.aug_strategy.random_lf_flip = True
 config.train.aug_strategy.random_updown_flip = False
 config.train.aug_strategy.random_rotate = False
@@ -94,7 +94,7 @@ config.test.aug_strategy = edict()
 config.test.aug_strategy.resize = True
 config.test.aug_strategy.resize_size = 96
 config.test.aug_strategy.grayscal = False
-config.test.aug_strategy.normalize = False
+config.test.aug_strategy.normalize = True
 config.test.aug_strategy.random_lf_flip = False
 config.test.aug_strategy.random_updown_flip = False
 config.test.aug_strategy.random_rotate = False
@@ -107,7 +107,7 @@ config.test.aug_strategy.max_rotate_angle = 20
 
 # model params
 config.epoch = 100
-config.train.batch_size = 32
+config.train.batch_size = 128
 config.train.repeat = 1
 config.test.batch_size = 256
 

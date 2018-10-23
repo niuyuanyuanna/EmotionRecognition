@@ -400,14 +400,14 @@ def mobileNetv2(input_shape, num_classes):
     x = _inverted_residual_block(x, 96, (3, 3), t=6, strides=1, n=3)
     # x = _inverted_residual_block(x, 160, (3, 3), t=6, strides=2, n=3)
     # x = _inverted_residual_block(x, 320, (3, 3), t=6, strides=1, n=1)
-
-    x = _conv_block(x, 1280, (1, 1), strides=(1, 1))
+    x = _conv_block(x, 256, (1, 1), strides=(1, 1))
     x = GlobalAveragePooling2D()(x)
-    x = Reshape((1, 1, 1280))(x)
+    x = Reshape((1, 1, 256))(x)
     x = Dropout(0.3, name='Dropout')(x)
     x = Conv2D(num_classes, (1, 1), padding='same')(x)
 
-    output = Activation('softmax', name='predictions')(x)
+    x = Activation('softmax')(x)
+    output = Reshape((num_classes,), name='predictions')(x)
 
     model = Model(inputs, output)
     return model
