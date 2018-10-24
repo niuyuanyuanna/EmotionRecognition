@@ -15,7 +15,6 @@ from keras.layers import MaxPooling2D
 from keras.layers import SeparableConv2D
 from keras import layers
 from keras.regularizers import l2
-
 from keras.layers import add, Reshape, DepthwiseConv2D
 from keras.utils.vis_utils import plot_model
 from keras_applications.mobilenet import relu6

@@ -58,7 +58,9 @@ class ImageGenerator(object):
         return image_array
 
     def grascal(self, image_array):
-        image_array = cv2.cvtColor(image_array.astype('uint8'), cv2.COLOR_RGB2GRAY).astype('float32')
+        num_image_channels = len(image_array.shape)
+        if num_image_channels == 3:
+            image_array = cv2.cvtColor(image_array.astype('uint8'), cv2.COLOR_RGB2GRAY).astype('float32')
         image_array = np.expand_dims(image_array, -1)
         return image_array
 
@@ -169,13 +171,12 @@ class ImageGenerator(object):
             inputs = list()
             targets = list()
             for i, key in enumerate(image_keys):
-                image_path = os.path.join(self.config.dataset.raf.aligned_image_path, key)
-                image_array = imread(image_path)
+                image_array = imread(key)
                 image_array = imresize(image_array, (self.config.train.aug_strategy.resize_size,
                                                      self.config.train.aug_strategy.resize_size))
-                num_image_channels = len(image_array.shape)
-                if num_image_channels != 3:
-                    continue
+                # num_image_channels = len(image_array.shape)
+                # if num_image_channels != 3:
+                #     continue
                 ground_truth = label_list[i]
                 image_array = image_array.astype('float32')
                 if mode == 'train':

@@ -6,8 +6,8 @@
 # @File    : tf_dan.py
 import tensorflow as tf
 
-from model.dan_layer import  AffineTransformLayer, TransformParamsLayer, LandmarkImageLayer, LandmarkTransformLayer
-from utils import cyclic_learning_rate
+from model.dan_layer import AffineTransformLayer, TransformParamsLayer, LandmarkImageLayer, LandmarkTransformLayer
+from util.dan_util import cyclic_learning_rate
 
 
 def NormRmse(GroudTruth, Prediction, n_landmark=68):
@@ -20,12 +20,11 @@ def NormRmse(GroudTruth, Prediction, n_landmark=68):
     return loss / norm
 
 
-def augment(images, labels, labels_em):
+def augment(images):
     brght_imgs = tf.image.random_brightness(images, max_delta=0.3)
-    cntrst_imgs = tf.image.random_contrast(
-        brght_imgs, lower=0.2, upper=1.8)
+    cntrst_imgs = tf.image.random_contrast(brght_imgs, lower=0.2, upper=1.8)
     # hue_imgs = tf.image.random_hue(cntrst_imgs, max_delta=0.2)
-    return cntrst_imgs, labels, labels_em
+    return cntrst_imgs
 
 
 def emoDAN(MeanShapeNumpy, batch_size, nb_emotions=7,
@@ -54,31 +53,15 @@ def emoDAN(MeanShapeNumpy, batch_size, nb_emotions=7,
     Ret_dict['S1_isTrain'] = S1_isTrain
     Ret_dict['S2_isTrain'] = S2_isTrain
 
-    InputImage, GroundTruth, Emotion_Labels = augment(
-        InputImage, GroundTruth, Emotion_Labels)
+    InputImage = augment(InputImage)
 
     with tf.variable_scope('Stage1'):
-
-        S1_Conv1a = tf.layers.batch_normalization(
-            tf.layers.conv2d(
-                InputImage,
-                64,
-                3,
-                1,
-                padding='same',
-                activation=tf.nn.relu,
-                kernel_initializer=tf.glorot_uniform_initializer()),
-            training=S1_isTrain)
-        S1_Conv1b = tf.layers.batch_normalization(
-            tf.layers.conv2d(
-                S1_Conv1a,
-                64,
-                3,
-                1,
-                padding='same',
-                activation=tf.nn.relu,
-                kernel_initializer=tf.glorot_uniform_initializer()),
-            training=S1_isTrain)
+        S1_Conv1a = tf.layers.conv2d(InputImage, 64, 3, 1, padding='same', activation=tf.nn.relu,
+                                     kernel_initializer=tf.glorot_uniform_initializer())
+        S1_Conv1a = tf.layers.batch_normalization(S1_Conv1a, training=S1_isTrain)
+        S1_Conv1b = tf.layers.conv2d(S1_Conv1a, 64, 3, 1, padding='same', activation=tf.nn.relu,
+                                     kernel_initializer=tf.glorot_uniform_initializer())
+        S1_Conv1b = tf.layers.batch_normalization(S1_Conv1b, training=S1_isTrain)
         S1_Pool1 = tf.layers.max_pooling2d(S1_Conv1b, 2, 2, padding='same')
 
         S1_Conv2a = tf.layers.batch_normalization(

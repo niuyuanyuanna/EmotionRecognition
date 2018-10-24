@@ -17,9 +17,12 @@ def load_ck_data_list(file_path):
     label_list = []
     for i in range(1, len(sub_dirs) - 1):
         label_name = os.path.basename(sub_dirs[i])
+        if label_name == 'contempt':
+            continue
         for extension in extensions:
             file_glob = os.path.join(file_path, label_name, '*.' + extension)
             file_list.extend(glob.glob(file_glob))
+            print(glob.glob(file_glob))
             for one_file_path in glob.glob(file_glob):
                 label_list.append(label_name)
         if not file_list:
@@ -50,3 +53,19 @@ def load_image_raw_list(file_list, label_list):
     train_label = label_list[len_val:]
 
     return val_image_path_list, val_label, train_image_path_list, train_label
+
+
+def write_list_txt(save_path, image_list, label_list):
+    with open(save_path, 'w+') as f:
+        for i in range(len(image_list)):
+            f.write(image_list[i] + '\t' + str(label_list[i]) + '\n')
+
+
+if __name__ == '__main__':
+    face_image_path = config.dataset.ck.enhanced_img_path
+    image_list, image_label = load_ck_data_list(face_image_path)
+    print(len(image_list))
+    label_dict = {'surprise': 1, 'fear': 2, 'disgust': 3, 'happy': 4, 'sadness': 5, 'anger': 6, 'neural': 7}
+    image_label = convert_label_list(label_dict, image_label)
+    save_test_txt = os.path.join(config.dataset.raf.label_list_path, 'ck_image_label.txt')
+    write_list_txt(save_test_txt, image_list, image_label)

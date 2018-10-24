@@ -18,12 +18,12 @@ config.dataset.raf = edict()
 config.model = edict()
 config.tmp = edict()
 
-config.dataset.input_resolution = (96, 96, 3)
+config.dataset.input_resolution = (100, 100, 1)
 
 config.dataset.ck.data_path = os.path.join(config.data_root_path, 'DatasetCK+')
 config.dataset.ck.origin_img_path = os.path.join(config.dataset.ck.data_path, 'origin_imgs')
 config.dataset.ck.label_data_path = os.path.join(config.dataset.ck.data_path, 'origin_labels')
-config.dataset.ck.enhanced_img_path = os.path.join(config.dataset.ck.data_path, 'image')
+config.dataset.ck.enhanced_img_path = os.path.join(config.dataset.ck.data_path, 'face_imgs')
 config.dataset.ck.data_bottleneck_path = os.path.join(config.dataset.ck.data_path, 'bottleneck')
 config.dataset.ck.total_train_img_path = os.path.join(config.dataset.ck.data_path, 'enhance_and_sorted_face_imgs')
 
@@ -75,8 +75,8 @@ config.train = edict()
 config.train.split_val = 0.2
 config.train.aug_strategy = edict()
 config.train.aug_strategy.resize = True
-config.train.aug_strategy.resize_size = 96
-config.train.aug_strategy.grayscal = False
+config.train.aug_strategy.resize_size = 100
+config.train.aug_strategy.grayscal = True
 config.train.aug_strategy.normalize = True
 config.train.aug_strategy.random_lf_flip = True
 config.train.aug_strategy.random_updown_flip = False
@@ -92,8 +92,8 @@ config.train.aug_strategy.max_rotate_angle = 20
 config.test = edict()
 config.test.aug_strategy = edict()
 config.test.aug_strategy.resize = True
-config.test.aug_strategy.resize_size = 96
-config.test.aug_strategy.grayscal = False
+config.test.aug_strategy.resize_size = 100
+config.test.aug_strategy.grayscal = True
 config.test.aug_strategy.normalize = True
 config.test.aug_strategy.random_lf_flip = False
 config.test.aug_strategy.random_updown_flip = False

@@ -23,12 +23,17 @@ def creat_path(path):
 
 def train():
     train_txt = os.path.join(config.dataset.raf.label_list_path, 'train_image_label.txt')
-    test_txt = os.path.join(config.dataset.raf.label_list_path, 'test_image_label.txt')
+    train_txt2 = os.path.join(config.dataset.raf.label_list_path, 'test_image_label.txt')
     train_image_names, train_image_labels = load_normal_list(train_txt)
-    test_image_names, test_image_labels = load_normal_list(test_txt)
+    train_image_names2, train_image_labels2 = load_normal_list(train_txt2)
+    train_image_names.extend(train_image_names2)
+    train_image_labels.extend(train_image_labels2)
     train_dicts = list(zip(train_image_names, train_image_labels))
     shuffle(train_dicts)
     train_image_names, train_image_labels = zip(*train_dicts)
+
+    test_txt = os.path.join(config.dataset.raf.label_list_path, 'ck_image_label.txt')
+    test_image_names, test_image_labels = load_normal_list(test_txt)
 
     image_generator = ImageGenerator(train_image_names, train_image_labels, test_image_names, test_image_labels, config)
 

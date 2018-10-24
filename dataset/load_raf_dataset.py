@@ -20,7 +20,8 @@ def load_label_list(label_path):
             origin_image_name = line[0]
             split_arr = origin_image_name.split('.')
             aligned_image_name = split_arr[0] + '_aligned.jpg'
-            image_list.append(aligned_image_name)
+            image_path = os.path.join(config.dataset.raf.aligned_image_path, aligned_image_name)
+            image_list.append(image_path)
             label_list.append(line[-1])
     return image_list, label_list
 
@@ -47,13 +48,14 @@ def split_dataset_list(label_path):
         for line in fid:
             line = line.decode()
             line = line.strip().split('\t')
-            image_name = line[0]
+            image_full_name = line[0]
+            image_name = os.path.basename(image_full_name)
             image_usage = image_name.split('_')[0]
             if image_usage == 'train':
-                train_image_list.append(image_name)
+                train_image_list.append(image_full_name)
                 train_label_list.append(line[-1])
             else:
-                test_image_list.append(image_name)
+                test_image_list.append(image_full_name)
                 test_label_list.append(line[-1])
     return train_image_list, train_label_list, test_image_list, test_label_list
 
@@ -73,8 +75,8 @@ def load_normal_list(label_path):
         for line in fid:
             line = line.decode()
             line = line.strip().split('\t')
-            image_name = line[0]
-            image_list.append(image_name)
+            image_path = line[0]
+            image_list.append(image_path)
             label_list.append(line[-1])
     return image_list, label_list
 
