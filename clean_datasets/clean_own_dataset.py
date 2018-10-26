@@ -19,7 +19,7 @@ from config.configs import config
 
 
 def get_origin_image_list():
-    own_dataset_root_path = os.path.join(config.data_root_path, 'own/cutSmallFace')
+    own_dataset_root_path = os.path.join(config.data_root_path, 'own/expression')
     images_list = []
     subdirs = os.walk(own_dataset_root_path)
     for root, dirs, _ in subdirs:
@@ -89,7 +89,6 @@ def save_face_token(filepath, normal_txt_path, error_txt_path):
                 return
         face = faces[0]
 
-
         face_token = face['face_token']
         face_landmark = face['landmark']
         face_attributes = face['attributes']
@@ -102,7 +101,7 @@ def save_face_token(filepath, normal_txt_path, error_txt_path):
 
 
 def clean_images(images_list, normal_txt_path, error_txt_path):
-    for i in range(61500, len(images_list)):
+    for i in range(0, len(images_list)):
         image_path = images_list[i]
         print('deal with %d th image' % i)
         save_face_token(image_path, normal_txt_path, error_txt_path)
@@ -111,14 +110,14 @@ def clean_images(images_list, normal_txt_path, error_txt_path):
 
 if __name__ == '__main__':
     # images_list = get_origin_image_list()
-
+    #
     txt_base_path = os.path.join(config.data_root_path, 'own/logs')
-    txt_full_path = os.path.join(txt_base_path, 'origin_image_lists.txt')
+    txt_full_path = os.path.join(txt_base_path, 'exp_origin_image_lists.txt')
     # write_list_to_file(txt_full_path, images_list)
 
     images_list = load_images_list(txt_full_path)
-    normal_txt_path = os.path.join(txt_base_path, 'normal_image_list.txt')
-    error_txt_path = os.path.join(txt_base_path, 'error_image_list.txt')
+    normal_txt_path = os.path.join(txt_base_path, 'exp_normal_image_list.txt')
+    error_txt_path = os.path.join(txt_base_path, 'exp_error_image_list.txt')
     clean_images(images_list, normal_txt_path, error_txt_path)
 
 

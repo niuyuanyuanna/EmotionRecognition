@@ -15,6 +15,7 @@ config.dataset = edict()
 config.dataset.ck = edict()
 config.dataset.fer2013 = edict()
 config.dataset.raf = edict()
+config.dataset.afn = edict()
 config.model = edict()
 config.tmp = edict()
 
@@ -59,6 +60,11 @@ config.dataset.raf.aligned_image_path = os.path.join(config.dataset.raf.RAF_path
 config.dataset.raf.label_list_path = os.path.join(config.dataset.raf.RAF_path, 'EmoLabel')
 config.dataset.raf.r_g_b_mean = [146.67694408768622, 114.62698965039486, 102.31048248716525]
 config.dataset.raf.r_g_b_std = [38.783743581401644, 34.66747586689521, 36.66802127661255,]
+
+config.dataset.afn.root_path = os.path.join(config.data_root_path, 'AffectNet')
+config.dataset.afn.image_path = os.path.join(config.dataset.afn.root_path, 'Manually_Annotated/Manually_Annotated/Manually_Annotated_Images')
+config.dataset.afn.csv_data = os.path.join(config.dataset.afn.root_path, 'Manually_Annotated_file_lists')
+config.dataset.afn.data_log = os.path.join(config.dataset.afn.root_path, 'logs')
 
 config.model.root_path = os.path.join(config.data_root_path, 'Models')
 config.model.inception_tf_model = os.path.join(config.model.root_path, 'Inception-V3')

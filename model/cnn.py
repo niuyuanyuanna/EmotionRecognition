@@ -4,22 +4,20 @@
 # @Author  : NYY
 # @Site    : www.niuyuanyuanna.git.io
 # @File    : cnn.py
+from keras import layers
 from keras.layers import Activation, Convolution2D, Dropout, Conv2D
 from keras.layers import AveragePooling2D, BatchNormalization
 from keras.layers import GlobalAveragePooling2D
-from keras.models import Sequential
 from keras.layers import Flatten
-from keras.models import Model
 from keras.layers import Input
 from keras.layers import MaxPooling2D
 from keras.layers import SeparableConv2D
-from keras import layers
+from keras.layers import add, Reshape
+from keras.models import Model
+from keras.models import Sequential
 from keras.regularizers import l2
-from keras.layers import add, Reshape, DepthwiseConv2D
-from keras.utils.vis_utils import plot_model
-from keras_applications.mobilenet import relu6
-
 from keras import backend as K
+from keras.applications.mobilenet import relu6, DepthwiseConv2D
 
 
 def simple_CNN(input_shape, num_classes):
