@@ -30,20 +30,20 @@ def find_closest(matrix_list, target_matrix):
     return closest_matrix, closest_id
 
 
-def loadFromPts(filename):
+def load_from_pts(filename):
     landmarks = np.genfromtxt(filename, skip_header=3, skip_footer=1)
     landmarks = landmarks - 1
     return landmarks
 
 
-def saveToPts(filename, landmarks):
+def save_to_pts(filename, landmarks):
     pts = landmarks + 1
     header = 'version: 1\nn_points: {}\n{{'.format(pts.shape[0])
     np.savetxt(filename, pts, delimiter=' ', header=header,
                footer='}', fmt='%.3f', comments='')
 
 
-def bestFitRect(points, meanS, box=None):
+def best_fit_rect(points, meanS, box=None):
     if box is None:
         box = np.array([points[:, 0].min(), points[:, 1].min(),
                         points[:, 0].max(), points[:, 1].max()])
@@ -68,7 +68,7 @@ def bestFitRect(points, meanS, box=None):
     return S0
 
 
-def bestFit(destination, source, returnTransform=False):
+def best_fit(destination, source, returnTransform=False):
     destMean = np.mean(destination, axis=0)
     srcMean = np.mean(source, axis=0)
 
@@ -91,15 +91,15 @@ def bestFit(destination, source, returnTransform=False):
         return np.dot(srcVec.reshape((-1, 2)), T) + destMean
 
 
-def mirrorShape(shape, imgShape=None):
+def mirror_shape(shape, imgShape=None):
     imgShapeTemp = np.array(imgShape)
-    shape2 = mirrorShapes(shape.reshape((1, -1, 2)),
+    shape2 = mirror_shapes(shape.reshape((1, -1, 2)),
                           imgShapeTemp.reshape((1, -1)))[0]
 
     return shape2
 
 
-def mirrorShapes(shapes, imgShapes=None):
+def mirror_shapes(shapes, imgShapes=None):
     shapes2 = shapes.copy()
 
     for i in range(shapes.shape[0]):
