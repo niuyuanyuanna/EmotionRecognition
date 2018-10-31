@@ -63,10 +63,11 @@ class AffetNet_Server(object):
         boundingboxs = []
         emotions = []
 
-        with open(csv_file, 'rb') as f:
+        with open(csv_file, 'r') as f:
             reader = csv.reader(f)
-            headers = next(reader)
-            for row in reader:
+            for i, row in enumerate(reader):
+                if reader.line_num == 1:
+                    continue
                 subDirectory_filePath = row[0]
                 image_full_path = os.path.join(config.dataset.afn.image_path, subDirectory_filePath)
                 bbox_xywh = row[1:5]
@@ -79,6 +80,9 @@ class AffetNet_Server(object):
                 boundingboxs.append(bbox_xywh)
                 emotions.append(expression)
 
+                if i > 3:
+                    break
+
         filenames = filenames[start_id: start_id + n_images]
         landmarks = landmarks[start_id: start_id + n_images]
         boundingboxs = boundingboxs[start_id: start_id + n_images]
@@ -88,9 +92,9 @@ class AffetNet_Server(object):
         if mirror_flag:
             mirror_list = mirror_list + [True for i in range(n_images)]
             filenames = np.concatenate((filenames, filenames))
+            emotions = np.concatenate((emotions, emotions))
             landmarks = np.vstack((landmarks, landmarks))
             boundingboxs = np.vstack((boundingboxs, boundingboxs))
-            emotions = np.vstack((emotions, emotions))
 
         self.orig_landmark = landmarks
         self.filenames = filenames

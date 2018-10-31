@@ -65,6 +65,7 @@ config.dataset.afn.root_path = os.path.join(config.data_root_path, 'AffectNet')
 config.dataset.afn.image_path = os.path.join(config.dataset.afn.root_path, 'Manually_Annotated/Manually_Annotated/Manually_Annotated_Images')
 config.dataset.afn.csv_data = os.path.join(config.dataset.afn.root_path, 'Manually_Annotated_file_lists')
 config.dataset.afn.data_log = os.path.join(config.dataset.afn.root_path, 'logs')
+config.dataset.afn.img_size = 224
 
 config.model.root_path = os.path.join(config.data_root_path, 'Models')
 config.model.inception_tf_model = os.path.join(config.model.root_path, 'Inception-V3')
