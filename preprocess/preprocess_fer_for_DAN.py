@@ -30,7 +30,7 @@ def getAffine(From, To):
     to_centralized = To - to_mean
     from_vector = from_centralized.flatten()
     to_vector = to_centralized.flatten()
-    dot_result  = np.dot(from_vector, to_vector)
+    dot_result = np.dot(from_vector, to_vector)
     norm_pow2 = np.linalg.norm(from_centralized) ** 2
     a = dot_result / norm_pow2
     b = np.sum(np.cross(from_centralized, to_centralized)) / norm_pow2

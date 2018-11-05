@@ -4,112 +4,68 @@
 # @Author  : NYY
 # @Site    : www.niuyuanyuanna.git.io
 # @File    : test.py
-import os
-import numpy as np
 import cv2
-
-from scipy.misc import imread, imresize
-from dataset.load_affectNet_dataset import AffetNet_Server
-from config.configs import config
+import numpy as np
 
 
-def getAffine(From, To):
-    FromMean = np.mean(From, axis=0)
-    ToMean = np.mean(To, axis=0)
+def resize_img(img, landmarks, bbox):
+    w_scale = img.shape[0] / 224.0
+    h_scale = img.shape[1] / 224.0
+    landmarks[0] = landmarks[0] / w_scale
+    landmarks[1] = landmarks[1] / h_scale
 
-    FromCentralized = From - FromMean
-    ToCentralized = To - ToMean
+    bbox[2] += bbox[0]
+    bbox[3] += bbox[1]
+    bbox = bbox / w_scale
 
-    FromVector = (FromCentralized).flatten()
-    ToVector = (ToCentralized).flatten()
-
-    DotResult = np.dot(FromVector, ToVector)
-    NormPow2 = np.linalg.norm(FromCentralized) ** 2
-
-    a = DotResult / NormPow2
-    b = np.sum(np.cross(FromCentralized, ToCentralized)) / NormPow2
-
-    R = np.array([[a, b], [-b, a]])
-    T = ToMean - np.dot(FromMean, R)
-
-    return R, T
+    img = cv2.resize(img, (224, 224))
+    return img, landmarks, bbox
 
 
-def _load_data(imagepath, landmarks, is_train, mirror_array):
-    def makerotate(angle):
-        rad = angle * np.pi / 180.0
-        return np.array([[np.cos(rad), np.sin(rad)], [-np.sin(rad), np.cos(rad)]], dtype=np.float32)
-
-    srcpts = np.genfromtxt(ptspath.decode(), skip_header=3, skip_footer=1)
-    x, y = np.min(srcpts, axis=0).astype(np.int32)
-    w, h = np.ptp(srcpts, axis=0).astype(np.int32)
-    pts = (srcpts - [x, y]) / [w, h]
-
-    img = cv2.imread(imagepath.decode(), cv2.IMREAD_GRAYSCALE)
-    center = [0.5, 0.5]
-
-    if is_train:
-        pts = pts - center
-        pts = np.dot(pts, makerotate(np.random.normal(0, 20)))
-        pts = pts * np.random.normal(0.8, 0.05)
-        pts = pts + [np.random.normal(0, 0.05),
-                     np.random.normal(0, 0.05)] + center
-
-        pts = pts * FLAGS.img_size
-
-        R, T = getAffine(srcpts, pts)
-        M = np.zeros((2, 3), dtype=np.float32)
-        M[0:2, 0:2] = R.T
-        M[:, 2] = T
-        img = cv2.warpAffine(img, M, (FLAGS.img_size, FLAGS.img_size))
-
-        if any(mirror_array) and random.choice((True, False)):
-            pts[:, 0] = FLAGS.img_size - 1 - pts[:, 0]
-            pts = pts[mirror_array]
-            img = cv2.flip(img, 1)
-
-    else:
-        pts = pts - center
-        pts = pts * 0.8
-        pts = pts + center
-
-        pts = pts * FLAGS.img_size
-
-        R, T = getAffine(srcpts, pts)
-        M = np.zeros((2, 3), dtype=np.float32)
-        M[0:2, 0:2] = R.T
-        M[:, 2] = T
-        img = cv2.warpAffine(img, M, (FLAGS.img_size, FLAGS.img_size))
-
-    _, filename = os.path.split(imagepath.decode())
-    filename, _ = os.path.splitext(filename)
-
-    uid = str(uuid.uuid1())
-
-    cv2.imwrite(os.path.join(FLAGS.output_dir, filename + '@' + uid + '.png'), img)
-    np.savetxt(os.path.join(FLAGS.output_dir, filename + '@' + uid + '.ptv'), pts, delimiter=',')
-
-    return img, pts.astype(np.float32)
-
+def show_img(img, landmarks, bbox):
+    cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 2)
+    for i in range(len(landmarks)):
+        pos = (landmarks[i][0], landmarks[i][1])
+        cv2.circle(img, pos, 2, color=(0, 255, 0))
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        cv2.putText(img, str(i / 2 + 1), pos, font, 0.2, (0, 0, 255), 1, cv2.LINE_AA)
+    cv2.namedWindow("Image")
+    cv2.imshow("Image", img)
+    cv2.waitKey(0)
+    cv2.imwrite('E:/liuyuan/projects/EmotionRecognition/test/img1.jpg', img)
+    pass
 
 
 if __name__ == '__main__':
     file_path = 'E:/liuyuan/DataCenter\AffectNet\Manually_Annotated/Manually_Annotated/Manually_Annotated_Images' \
-                '/1000/6fdb358fdcd677e567da785cee6092c6bf1121ad787f94b485b9389d.jpg'
-    bbox = ['32', '32', '286', '286']
-    landmarks = ['114.33', '158.7', '106.05', '183.97', '104.51', '211.39', '111.4', '240.93', '118.76', '269.75',
-                 '125.51', '302.85', '132.55', '333.12', '139.38', '362.09', '163.02', '374.81', '197.67', '376.97',
-                 '237.41', '362.72', '278.9', '340.46', '318.35', '314.52', '346.59', '281.05', '360.07', '241.31',
-                 '364.92', '199.1', '366.78', '156.23', '97.71', '125.56', '104.49', '114.75', '118.0', '115.59',
-                 '132.0', '119.33', '145.88', '125.77', '175.44', '124.18', '203.88', '114.71', '235.3', '112.39',
-                 '267.75', '118.4', '293.56', '134.82', '158.34', '149.15', '151.45', '170.74', '143.72', '192.7',
-                 '135.9', '215.25', '129.28', '229.29', '137.61', '237.39', '149.55', '242.23', '167.22', '238.74',
-                 '184.41', '233.98', '114.55', '152.87', '123.44', '143.85', '138.14', '144.86', '150.88', '152.03',
-                 '137.37', '156.7', '123.62', '157.24', '211.04', '154.29', '224.73', '146.04', '242.69', '147.32',
-                 '257.94', '154.41', '242.23', '158.93', '224.92', '158.11', '128.6', '275.11', '133.09', '267.78',
-                 '143.8', '266.49', '154.32', '271.13', '171.77', '268.65', '199.37', '272.89', '228.09', '280.03',
-                 '200.93', '303.6', '173.06', '312.76', '155.35', '312.93', '142.65', '309.95', '133.18', '299.42',
-                 '133.76', '278.23', '144.1', '276.83', '155.14', '279.04', '172.34', '279.56', '220.6', '281.68',
-                 '172.06', '295.85', '155.37', '294.67', '143.87', '291.55']
-    emotion_label = 6
+                '/1014/0a1bab1f2a4a883ce351fca47735b64e70a21d9a3d22587e64826a4f.jpg'
+    bbox = [85, 85, 573, 573]
+    landmarks = ['90.37', '286.24', '93.24', '359.44', '102.79', '430.09', '118.06', '499.27', '148.24', '561.17',
+                 '196.37', '616.46', '251.34', '666.06', '313.28', '704.55', '381.39', '708.46', '435.64', '687.33',
+                 '475.97', '637.95', '510.27', '586.7', '543.26', '527.13', '561.81', '467.02', '576.78', '409.89',
+                 '586.33', '350.64', '586.55', '291.51', '150.75', '261.6', '200.23', '246.29', '246.96', '245.72',
+                 '294.95', '253.18', '337.76', '271.41', '436.56', '269.95', '474.83', '253.84', '511.59', '246.15',
+                 '544.08', '242.48', '573.13', '257.01', '388.01', '316.87', '390.46', '369.54', '394.3', '422.29',
+                 '398.04', '475.46', '335.13', '489.49', '361.56', '500.3', '387.77', '511.34', '411.62', '500.35',
+                 '430.73', '487.03', '212.51', '308.99', '243.42', '292.63', '278.76', '294.52', '307.61', '320.67',
+                 '276.37', '326.18', '240.97', '324.98', '437.67', '318.87', '466.27', '294.82', '499.42', '293.83',
+                 '523.01', '307.15', '503.5', '323.65', '472.42', '325.49', '260.46', '546.06', '315.79', '550.9',
+                 '363.09', '550.2', '382.82', '558.51', '407.43', '548.25', '437.54', '547.94', '470.03', '542.65',
+                 '438.61', '581.91', '407.14', '604.57', '381.17', '608.49', '357.0', '608.13', '313.45', '593.25',
+                 '279.21', '552.49', '360.25', '569.42', '382.01', '571.94', '407.56', '565.69', '450.73', '550.56',
+                 '407.03', '572.02', '380.98', '578.16', '359.46', '577.55']
+    emotion_label = 0
+    img = cv2.imread(file_path)
+    cv2.rectangle(img, (bbox[0], bbox[1]), (bbox[0] + bbox[2], bbox[1] + bbox[3]), (0, 255, 0), 2)
+    for i, point in enumerate(landmarks):
+        point = float(point)
+        point = int(point)
+        landmarks[i] = point
+    landmarks = np.reshape(landmarks, (-1, 2))
+    landmarks = np.asarray(landmarks)
+    img = np.asarray(img)
+    bbox = np.asarray(bbox)
+    img, landmarks, bbox = resize_img(img, landmarks, bbox)
+
+    show_img(img, landmarks, bbox)
 
