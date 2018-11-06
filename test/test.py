@@ -11,12 +11,13 @@ import numpy as np
 def resize_img(img, landmarks, bbox):
     w_scale = img.shape[0] / 224.0
     h_scale = img.shape[1] / 224.0
-    landmarks[0] = landmarks[0] / w_scale
-    landmarks[1] = landmarks[1] / h_scale
+    landmarks[:, 0] = landmarks[:, 0] / w_scale
+    landmarks[:, 1] = landmarks[:, 1] / h_scale
 
     bbox[2] += bbox[0]
     bbox[3] += bbox[1]
     bbox = bbox / w_scale
+    bbox = np.asarray(bbox, int)
 
     img = cv2.resize(img, (224, 224))
     return img, landmarks, bbox
