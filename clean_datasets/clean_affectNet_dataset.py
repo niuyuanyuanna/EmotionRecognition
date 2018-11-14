@@ -6,7 +6,7 @@
 # @File    : clean_affectNet_dataset.py
 import csv
 import os
-import cv2
+from PIL import Image
 
 from config.configs import config
 
@@ -14,7 +14,7 @@ from config.configs import config
 def clean_csv(input_filepath, output_filepath):
     with open(input_filepath, 'r') as fr:
         reader = csv.reader(fr)
-        with open(output_filepath, 'w+', newline='') as fw:
+        with open(output_filepath, 'wb+') as fw:
             writer = csv.writer(fw)
             for i, row in enumerate(reader):
                 if reader.line_num == 1:
@@ -26,7 +26,8 @@ def clean_csv(input_filepath, output_filepath):
                 image_full_path = os.path.join(config.dataset.afn.image_path, subDirectory_filePath)
                 if os.path.exists(image_full_path):
                     try:
-                        img = cv2.imread(image_full_path)
+                        Image.open(image_full_path).load()
+                        # img = cv2.imread(image_full_path)
                     except Exception as e:
                         print(Exception, ":", e)
                         continue

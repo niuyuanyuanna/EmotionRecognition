@@ -7,6 +7,8 @@
 import csv
 import os
 import random
+import numpy as np
+
 
 from config.configs import config
 
@@ -14,15 +16,21 @@ from config.configs import config
 def load_filename_list(csv_file):
     file_list = []
     emotion_labels = []
+    landmarks_list = []
     with open(csv_file, 'r') as f:
         reader = csv.reader((line.replace('\0', '') for line in f))
         for raw in reader:
             file_name = raw[0]
+            landmarks = raw[2].replace('[', '')
+            landmarks = landmarks.replace(']', '')
+            landmarks = landmarks.split(',')
+            for i in range(len(landmarks)):
+                landmarks[i] = float(landmarks[i])
             emotion = int(raw[-1])
             file_list.append(file_name)
             emotion_labels.append(emotion)
-    print(len(emotion_labels))
-    return file_list, emotion_labels
+            landmarks_list.append(landmarks)
+    return file_list, landmarks_list, emotion_labels
 
 
 def analyse_dataset(emotion_labels):
@@ -51,7 +59,7 @@ def formate_training_list(csv_file):
 
 
 def save_training_file(output_dict, csv_file, output_filepath):
-    with open(csv_file, 'rU') as f:
+    with open(csv_file, 'r') as f:
         reader = csv.reader((line.replace('\0', '') for line in f))
         with open(output_filepath, 'w+', newline='') as fw:
             writer = csv.writer(fw)
@@ -65,7 +73,8 @@ def save_training_file(output_dict, csv_file, output_filepath):
 
 
 if __name__ == '__main__':
-    csv_file = os.path.join(config.dataset.afn.csv_data, 'train_cleaned.csv')
+    csv_file = os.path.join(config.dataset.afn.csv_data, 'train_cleaned_server.csv')
     output_file = os.path.join(config.dataset.afn.csv_data, 'train_filted.csv')
-    output_dict = formate_training_list(csv_file)
-    save_training_file(output_dict, csv_file, output_file)
+    # output_dict = formate_training_list(csv_file)
+    # save_training_file(output_dict, csv_file, output_file)
+    load_filename_list(output_file)

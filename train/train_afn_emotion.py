@@ -23,8 +23,8 @@ def creat_path(path):
 
 
 def train():
-    train_csv = os.path.join(config.dataset.afn.csv_data, 'train_cleaned.csv')
-    train_image_names, train_image_labels = load_filename_list(train_csv)
+    train_csv = os.path.join(config.dataset.afn.csv_data, 'train_filted.csv')
+    train_image_names, _, train_image_labels = load_filename_list(train_csv)
 
     train_dicts = list(zip(train_image_names, train_image_labels))
     shuffle(train_dicts)
