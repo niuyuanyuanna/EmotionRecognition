@@ -5,6 +5,7 @@
 # @File    : configs.py
 # @Software: PyCharm
 from easydict import EasyDict as edict
+import time
 import os
 
 
@@ -20,6 +21,8 @@ config.model = edict()
 config.tmp = edict()
 
 config.dataset.input_resolution = (100, 100, 1)
+now_date = time.strftime('%Y-%m-%d', time.localtime(time.time()))
+now_time = time.strftime('%H_%M_%S', time.localtime(time.time()))
 
 config.dataset.ck.data_path = os.path.join(config.data_root_path, 'DatasetCK+')
 config.dataset.ck.origin_img_path = os.path.join(config.dataset.ck.data_path, 'origin_imgs')
@@ -65,7 +68,8 @@ config.dataset.afn.root_path = os.path.join(config.data_root_path, 'AffectNet')
 config.dataset.afn.image_path = os.path.join(config.dataset.afn.root_path, 'Manually_Annotated/Manually_Annotated_Images')
 config.dataset.afn.face_image_path = os.path.join(config.dataset.afn.root_path, 'face_imgs')
 config.dataset.afn.csv_data = os.path.join(config.dataset.afn.root_path, 'Manually_Annotated_file_lists')
-config.dataset.afn.data_log = os.path.join(config.dataset.afn.root_path, 'logs')
+config.dataset.afn.data_log = os.path.join(config.dataset.afn.root_path, now_date,  now_time + '_logs')
+config.dataset.afn.model_path = os.path.join(config.dataset.afn.root_path, now_date,  now_time + '_models')
 config.dataset.afn.img_size = 224
 
 config.model.root_path = os.path.join(config.data_root_path, 'Models')
@@ -114,7 +118,7 @@ config.test.aug_strategy.random_lighting = False
 config.test.aug_strategy.max_rotate_angle = 20
 
 # model params
-config.epoch = 100
+config.epoch = 50
 config.train.batch_size = 128
 config.train.repeat = 1
 config.test.batch_size = 256

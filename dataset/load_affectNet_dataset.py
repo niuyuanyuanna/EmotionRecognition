@@ -17,18 +17,17 @@ def load_filename_list(csv_file):
     emotion_labels = []
     landmarks_list = []
     with open(csv_file, 'r') as f:
-        reader = csv.reader(f, dialect=csv.excel_tab)
+        reader = csv.reader(f)
         for raw in reader:
             file_name = raw[0]
-            landmarks = raw[2].replace('[', '')
-            landmarks = landmarks.replace(']', '')
-            landmarks = landmarks.split(',')
+            landmarks = raw[2].split(';')
             for i in range(len(landmarks)):
                 landmarks[i] = float(landmarks[i])
             emotion = int(raw[-1])
             file_list.append(file_name)
             emotion_labels.append(emotion)
             landmarks_list.append(landmarks)
+        print('load filelist down, lenght is %d' % len(file_list))
     return file_list, landmarks_list, emotion_labels
 
 
@@ -44,8 +43,8 @@ def analyse_dataset(emotion_labels):
 def formate_training_list(csv_file):
     label_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: []}
     output_dict = label_dict
-    with open(csv_file, 'rb') as f:
-        reader = csv.reader(f, dialect=csv.excel_tab)
+    with open(csv_file, 'r') as f:
+        reader = csv.reader(f)
         for i, raw in enumerate(reader):
             emotion = int(raw[-1])
             label_dict[emotion].append(i)
@@ -61,7 +60,7 @@ def formate_training_list(csv_file):
 
 def save_training_file(output_dict, csv_file, output_filepath):
     with open(csv_file, 'r') as f:
-        reader = csv.reader(f, dialect=csv.excel_tab)
+        reader = csv.reader(f)
         with open(output_filepath, 'wb+') as fw:
             writer = csv.writer(fw)
             for i, raw in enumerate(reader):
@@ -74,7 +73,7 @@ def save_training_file(output_dict, csv_file, output_filepath):
 
 
 if __name__ == '__main__':
-    csv_file = os.path.join(config.dataset.afn.csv_data, 'train_cleaned_server.csv')
+    csv_file = os.path.join(config.dataset.afn.csv_data, 'train_c.csv')
     file_list, _, emotion_labels = load_filename_list(csv_file)
     emotion_dict = analyse_dataset(emotion_labels)
     print(emotion_dict)
@@ -82,10 +81,9 @@ if __name__ == '__main__':
     output_file = os.path.join(config.dataset.afn.csv_data, 'train_filted.csv')
     output_dict = formate_training_list(csv_file)
     save_training_file(output_dict, csv_file, output_file)
-    # load_filename_list(output_file)
-    print('load train csv file done')
+    print('load train_filted csv file done')
 
-    csv_file = os.path.join(config.dataset.afn.csv_data, 'val_cleaned1.csv')
+    csv_file = os.path.join(config.dataset.afn.csv_data, 'val_cleaned.csv')
     val_file_list, _, emotion_labels = load_filename_list(csv_file)
     emotion_dict = analyse_dataset(emotion_labels)
     print(emotion_dict)

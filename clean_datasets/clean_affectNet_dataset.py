@@ -33,17 +33,15 @@ def clean_csv(input_filepath, output_filepath):
                         continue
 
                     bbox_xywh = row[1:5]
+                    bbox_xywh = ';'.join(bbox_xywh)
                     facial_landmarks = row[5]
-                    facial_landmarks = facial_landmarks.split(';')
-                    for j in range(len(facial_landmarks)):
-                        facial_landmarks[j] = float(facial_landmarks[j])
                     writer.writerow((image_full_path, bbox_xywh, facial_landmarks, expression))
 
 
 if __name__ == '__main__':
     input_file = os.path.join(config.dataset.afn.csv_data, 'training.csv')
-    output_file = os.path.join(config.dataset.afn.csv_data, 'train_cleaned.csv')
+    output_file = os.path.join(config.dataset.afn.csv_data, 'train_c.csv')
     clean_csv(input_file, output_file)
     input_file = os.path.join(config.dataset.afn.csv_data, 'validation.csv')
-    output_file = os.path.join(config.dataset.afn.csv_data, 'val_cleaned.csv')
+    output_file = os.path.join(config.dataset.afn.csv_data, 'val_c.csv')
     clean_csv(input_file, output_file)
