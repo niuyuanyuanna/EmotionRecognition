@@ -14,8 +14,7 @@ from config.configs import config
 def clean_csv(input_filepath, output_filepath):
     with open(input_filepath, 'r') as fr:
         reader = csv.reader(fr)
-        with open(output_filepath, 'wb+') as fw:
-            writer = csv.writer(fw)
+        with open(output_filepath, 'a') as fe:
             for i, row in enumerate(reader):
                 if reader.line_num == 1:
                     continue
@@ -35,13 +34,13 @@ def clean_csv(input_filepath, output_filepath):
                     bbox_xywh = row[1:5]
                     bbox_xywh = ';'.join(bbox_xywh)
                     facial_landmarks = row[5]
-                    writer.writerow((image_full_path, bbox_xywh, facial_landmarks, expression))
+                    fe.write(image_full_path + '\t' + bbox_xywh + '\t' + facial_landmarks + '\t' + expression)
 
 
 if __name__ == '__main__':
     input_file = os.path.join(config.dataset.afn.csv_data, 'training.csv')
-    output_file = os.path.join(config.dataset.afn.csv_data, 'train_c.csv')
+    output_file = os.path.join(config.dataset.afn.csv_data, 'train_c.txt')
     clean_csv(input_file, output_file)
     input_file = os.path.join(config.dataset.afn.csv_data, 'validation.csv')
-    output_file = os.path.join(config.dataset.afn.csv_data, 'val_c.csv')
+    output_file = os.path.join(config.dataset.afn.csv_data, 'val_c.txt')
     clean_csv(input_file, output_file)

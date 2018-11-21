@@ -12,10 +12,17 @@ from model.tf_dan import emoDAN
 from config.configs import config
 
 
+def creat_file_path(file_path):
+    if not os.path.exists(file_path):
+        os.makedirs(file_path)
+
+
 if __name__ == '__main__':
     stage = 1
     s2_output_path = os.path.join(config.dataset.afn.model_path, 'model_s2')
     logging_file = os.path.join(config.dataset.afn.data_log, 'logging.txt')
+    creat_file_path(config.dataset.afn.model_path)
+    creat_file_path(config.dataset.afn.data_log)
 
     train_file_name = os.path.join(config.dataset.afn.csv_data, 'train_set.npz')
     val_file_name = os.path.join(config.dataset.afn.csv_data, 'val_set.npz')
