@@ -62,7 +62,7 @@ config.dataset.raf.RAF_path = os.path.join(config.data_root_path, 'RAF-DB')
 config.dataset.raf.aligned_image_path = os.path.join(config.dataset.raf.RAF_path, 'Image/aligned')
 config.dataset.raf.label_list_path = os.path.join(config.dataset.raf.RAF_path, 'EmoLabel')
 config.dataset.raf.r_g_b_mean = [146.67694408768622, 114.62698965039486, 102.31048248716525]
-config.dataset.raf.r_g_b_std = [38.783743581401644, 34.66747586689521, 36.66802127661255,]
+config.dataset.raf.r_g_b_std = [38.783743581401644, 34.66747586689521, 36.66802127661255]
 
 config.dataset.afn.root_path = os.path.join(config.data_root_path, 'AffectNet')
 config.dataset.afn.image_path = os.path.join(config.dataset.afn.root_path, 'Manually_Annotated/Manually_Annotated_Images')
@@ -71,6 +71,8 @@ config.dataset.afn.csv_data = os.path.join(config.dataset.afn.root_path, 'Manual
 config.dataset.afn.data_log = os.path.join(config.dataset.afn.root_path, now_date,  now_time + '_logs')
 config.dataset.afn.model_path = os.path.join(config.dataset.afn.root_path, now_date,  now_time + '_models')
 config.dataset.afn.img_size = 224
+config.dataset.raf.r_g_b_mean = [133.68162056986634, 108.18312581090332, 96.55070378941303]
+config.dataset.raf.r_g_b_std = [38.783743581401644, 34.66747586689521, 36.66802127661255]
 
 config.model.root_path = os.path.join(config.data_root_path, 'Models')
 config.model.inception_tf_model = os.path.join(config.model.root_path, 'Inception-V3')

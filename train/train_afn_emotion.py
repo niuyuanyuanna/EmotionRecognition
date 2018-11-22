@@ -23,15 +23,16 @@ def creat_path(path):
 
 
 def train():
-    train_csv = os.path.join(config.dataset.afn.csv_data, 'train_filted.csv')
-    train_image_names, _, train_image_labels = load_filename_list(train_csv)
+    train_csv = os.path.join(config.dataset.afn.csv_data, 'train_filted.txt')
+    train_image_names, bbox_list, landmark_list, train_image_labels = load_filename_list(train_csv)
+    # train_image_names, _, train_image_labels = load_filename_list(train_csv)
 
     train_dicts = list(zip(train_image_names, train_image_labels))
     shuffle(train_dicts)
     train_image_names, train_image_labels = zip(*train_dicts)
 
-    test_csv = os.path.join(config.dataset.afn.csv_data, 'val_c.csv')
-    test_image_names, test_image_labels = load_filename_list(test_csv)
+    test_csv = os.path.join(config.dataset.afn.csv_data, 'val.txt')
+    test_image_names, test_bbox, test_landmark, test_image_labels = load_filename_list(test_csv)
 
     image_generator = ImageGenerator(train_image_names, train_image_labels, test_image_names, test_image_labels, config)
 
@@ -42,10 +43,10 @@ def train():
     early_stop = EarlyStopping(monitor='val_acc', patience=30, verbose=0, mode='auto')
     reduce_lr = ReduceLROnPlateau('val_loss', factor=0.1, patience=int(50 / 4), verbose=1)
 
-    log_file_path = os.path.join(config.tmp.root_path, 'emotion_train_afn.log')
-    trained_model_path = config.model.tmp_kerase_model_save_path
+    log_file_path = os.path.join(config.dataset.afn.data_log, 'emotion_train_afn.log')
+    creat_path(config.dataset.afn.data_log)
+    trained_model_path = config.dataset.afn.model_path
     creat_path(trained_model_path)
-    creat_path(config.tmp.root_path)
 
     csv_logger = CSVLogger(log_file_path, append=False)
     model_names = os.path.join(trained_model_path, '.{epoch:02d}-{val_acc:.2f}.hdf5')

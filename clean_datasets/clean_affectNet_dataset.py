@@ -34,7 +34,7 @@ def clean_csv(input_filepath, output_filepath):
                     bbox_xywh = row[1:5]
                     bbox_xywh = ';'.join(bbox_xywh)
                     facial_landmarks = row[5]
-                    fe.write(image_full_path + '\t' + bbox_xywh + '\t' + facial_landmarks + '\t' + expression)
+                    fe.write(image_full_path + '\t' + bbox_xywh + '\t' + facial_landmarks + '\t' + expression + '\n')
 
 
 if __name__ == '__main__':

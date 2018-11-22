@@ -159,6 +159,13 @@ class ImageGenerator(object):
         categorical[np.arange(num_samples), integer_classes] = 1
         return categorical
 
+    def afn_formate_one_hot(self, label_list, num_classes=7):
+        integer_classes = np.asarray(label_list, dtype='int')
+        num_samples = integer_classes.shape[0]
+        categorical = np.zeros((num_samples, num_classes))
+        categorical[np.arange(num_samples), integer_classes] = 1
+        return categorical
+
     def flow(self, mode='train'):
         while True:
             if mode == 'train':
@@ -188,7 +195,7 @@ class ImageGenerator(object):
                 if len(targets) == self.config.train.batch_size:
                     inputs = np.asarray(inputs)
                     targets = np.asarray(targets)
-                    targets = self.formate_one_hot(targets)
+                    targets = self.afn_formate_one_hot(targets)
                     yield [{'input_1': inputs}, {'predictions': targets}]
                     inputs = list()
                     targets = list()

@@ -18,7 +18,7 @@ def load_filename_list(txt_file):
     landmark_list = []
     bbox_list = []
     with open(txt_file, 'rb') as fid:
-        for line in fid:
+        for index, line in enumerate(fid):
             line = line.decode()
             line = line.strip()
             raw = line.split('\t')
@@ -30,6 +30,7 @@ def load_filename_list(txt_file):
             emotion_list.append(emotion)
             landmark_list.append(landmarks)
             bbox_list.append(bbox)
+            print('line %d down' % index)
         print('load filelist down, lenght is %d' % len(file_list))
     return file_list, bbox_list, landmark_list, emotion_list
 
@@ -77,7 +78,8 @@ def save_training_file(output_dict, output_filepath,
                 filted_bbox_list.append(bbox_xywh)
                 filted_emotion_list.append(emotion)
 
-                fout.write(file_name + '\t' + bbox_xywh + '\t' + landmark_i + '\t' + emotion)
+                saved_str = file_name + '\t' + bbox_xywh + '\t' + landmark_i + '\t' + str(emotion) + '\n'
+                fout.write(saved_str)
     return filted_file_list, filted_bbox_list, filted_landmark_list, filted_emotion_list
 
 
@@ -107,6 +109,54 @@ def formate_dataset_npz(file_list, landmark_list, emotion_labels, output_filepat
         emotions_list.append(emotion_i)
     np.savez(output_filepath, images_list, landmarks_list, emotions_list)
 
+# ================== deal with the wrong formation in train.txt ==============
+
+
+def split_txt(file_path, output_file):
+    with open(file_path, 'rb') as fin:
+        for line in fin:
+            if line is None:
+                break
+            line = line.decode()
+            line = line.split('/home')
+            with open(output_file, 'a') as fout:
+                for l in line:
+                    l = '/home' + l
+                    fout.write(l + '\n')
+
+
+def fix_wrong_file(file_path, output_file):
+    with open(file_path) as fin:
+        with open(output_file, 'a') as fout:
+            lines = fin.readlines()
+            for index in range(0, len(lines)):
+                line = lines[index]
+                line = line.strip('\n')
+                if line == '':
+                    print('fix %d th empty line' % index)
+                    continue
+                if line == '/home':
+                    print('delete %d th invalid line' % index)
+                    continue
+                line = line.replace(',', '\t')
+                fout.write(line + '\n')
+
+
+def check_wrong_landmark(file_path, output_file):
+    with open(file_path, 'rb') as fin:
+        count = 0
+        with open(output_file, 'a') as fout:
+            for line in fin:
+                count += 1
+                line = line.decode()
+                line_list = line.split('\t')
+                landmarks = line_list[-2]
+                landmark_list = landmarks.split(';')
+                if not len(landmark_list) == 136:
+                    print('line %d th is invalid' % count)
+                    continue
+                fout.write(line)
+
 
 if __name__ == '__main__':
     origin_txt_file = os.path.join(config.dataset.afn.csv_data, 'train_c.txt')
@@ -131,4 +181,13 @@ if __name__ == '__main__':
     emotion_dict = analyse_dataset(val_emotion_list)
     print('analyze val_cleaned txt file done')
     print(emotion_dict)
+
+    val_npz_file = os.path.join(config.dataset.afn.csv_data, 'val.npz')
+    formate_dataset_npz(val_file_list, val_landmark_list, val_emotion_list, val_npz_file)
+    print('save val npz file done')
+
+    # output_file = os.path.join(config.dataset.afn.csv_data, 'train_cl.txt')
+    # split_txt(val_txt_file, output_file)
+    # fix_wrong_file(origin_txt_file, output_file)
+    # check_wrong_landmark(origin_txt_file, output_file)
 

@@ -18,8 +18,8 @@ if __name__ == '__main__':
     # train_txt_path = os.path.join(train_dir_path, 'train_image_label.txt')
     # train_image_list, train_label = load_normal_list(train_txt_path)
     train_dir_path = config.dataset.afn.csv_data
-    train_csv_path = os.path.join(train_dir_path, 'train_cleaned.txt')
-    train_image_list, train_label = load_filename_list(train_csv_path)
+    train_csv_path = os.path.join(train_dir_path, 'train_filted.txt')
+    train_image_list, bbox_list, landmark_list, emotion_list = load_filename_list(train_csv_path)
     sum_r = 0
     sum_g = 0
     sum_b = 0
