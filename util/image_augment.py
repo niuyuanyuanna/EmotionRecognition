@@ -3,7 +3,7 @@
 # @Time    : 2018/9/4 11:09
 # @Author  : NYY
 # @Site    : www.niuyuanyuanna.git.io
-# @File    : image_aug.py
+# @File    : image_augment.py
 import os
 import cv2
 import numpy as np
@@ -178,7 +178,7 @@ class ImageGenerator(object):
             inputs = list()
             targets = list()
             for i, key in enumerate(image_keys):
-                image_array = imread(key)
+                image_array = imread(key, mod='RGB')
                 image_array = imresize(image_array, (self.config.train.aug_strategy.resize_size,
                                                      self.config.train.aug_strategy.resize_size))
                 # num_image_channels = len(image_array.shape)

@@ -71,8 +71,8 @@ config.dataset.afn.csv_data = os.path.join(config.dataset.afn.root_path, 'Manual
 config.dataset.afn.data_log = os.path.join(config.dataset.afn.root_path, now_date,  now_time + '_logs')
 config.dataset.afn.model_path = os.path.join(config.dataset.afn.root_path, now_date,  now_time + '_models')
 config.dataset.afn.img_size = 224
-config.dataset.raf.r_g_b_mean = [133.68162056986634, 108.18312581090332, 96.55070378941303]
-config.dataset.raf.r_g_b_std = [38.783743581401644, 34.66747586689521, 36.66802127661255]
+config.dataset.afn.r_g_b_mean = [133.32895918472636, 107.82500318614512, 96.23145541742514]
+config.dataset.afn.r_g_b_std = [37.094849112162116, 33.560734474351804, 34.393506728552865]
 
 config.model.root_path = os.path.join(config.data_root_path, 'Models')
 config.model.inception_tf_model = os.path.join(config.model.root_path, 'Inception-V3')

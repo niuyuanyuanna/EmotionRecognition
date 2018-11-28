@@ -11,7 +11,7 @@ from random import shuffle
 from model.cnn import mobileNetv2
 from dataset.load_affectNet_dataset import load_filename_list
 from config.configs import config
-from util.image_aug import ImageGenerator
+from util.image_augment import ImageGenerator
 
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from keras.callbacks import CSVLogger, EarlyStopping
@@ -31,7 +31,7 @@ def train():
     shuffle(train_dicts)
     train_image_names, train_image_labels = zip(*train_dicts)
 
-    test_csv = os.path.join(config.dataset.afn.csv_data, 'val.txt')
+    test_csv = os.path.join(config.dataset.afn.csv_data, 'val_cl.txt')
     test_image_names, test_bbox, test_landmark, test_image_labels = load_filename_list(test_csv)
 
     image_generator = ImageGenerator(train_image_names, train_image_labels, test_image_names, test_image_labels, config)

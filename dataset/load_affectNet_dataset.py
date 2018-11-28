@@ -17,20 +17,22 @@ def load_filename_list(txt_file):
     emotion_list = []
     landmark_list = []
     bbox_list = []
-    with open(txt_file, 'rb') as fid:
+    with open(txt_file, 'r') as fid:
         for index, line in enumerate(fid):
-            line = line.decode()
-            line = line.strip()
             raw = line.split('\t')
             file_name = raw[0]
             bbox = raw[1]
             landmarks = raw[2]
-            emotion = int(raw[-1])
-            file_list.append(file_name)
-            emotion_list.append(emotion)
-            landmark_list.append(landmarks)
-            bbox_list.append(bbox)
-            print('line %d down' % index)
+            landmarklist = landmarks.split(';')
+            if len(landmarklist) == 136:
+                emotion = int(raw[-1])
+                file_list.append(file_name)
+                emotion_list.append(emotion)
+                landmark_list.append(landmarks)
+                bbox_list.append(bbox)
+                print('line %d down' % index)
+            else:
+                print('line %d is wrong' % index)
         print('load filelist down, lenght is %d' % len(file_list))
     return file_list, bbox_list, landmark_list, emotion_list
 
@@ -88,16 +90,16 @@ def formate_dataset_npz(file_list, landmark_list, emotion_labels, output_filepat
     landmarks_list = []
     emotions_list = []
     for i, file_path in enumerate(file_list):
-        img = cv2.imread(file_path)
-        img = np.asarray(img)
+        img_origin = cv2.imread(file_path)
+        img = np.asarray(img_origin)
 
         landmarks_i = landmark_list[i].split(';')
         for j, point in enumerate(landmarks_i):
             landmarks_i[j] = float(point)
         landmarks_i = np.reshape(landmarks_i, (-1, 2))
         landmarks_i = np.asarray(landmarks_i)
-        w_scale = img.shape[0] / float(config.dataset.afn.img_size)
-        h_scale = img.shape[1] / float(config.dataset.afn.img_size)
+        w_scale = img_origin.shape[0] / float(config.dataset.afn.img_size)
+        h_scale = img_origin.shape[1] / float(config.dataset.afn.img_size)
         landmarks_i[:, 0] = landmarks_i[:, 0] / w_scale
         landmarks_i[:, 1] = landmarks_i[:, 1] / h_scale
         landmarks_i = landmarks_i.flatten()
@@ -159,28 +161,29 @@ def check_wrong_landmark(file_path, output_file):
 
 
 if __name__ == '__main__':
-    origin_txt_file = os.path.join(config.dataset.afn.csv_data, 'train_c.txt')
-    file_list, bbox_list, landmark_list, emotion_list = load_filename_list(origin_txt_file)
-    emotion_dict = analyse_dataset(emotion_list)
-    print('analyze train_cleaned txt file done')
-    print(emotion_dict)
+    # origin_txt_file = os.path.join(config.dataset.afn.csv_data, 'train_cl.txt')
+    # file_list, bbox_list, landmark_list, emotion_list = load_filename_list(origin_txt_file)
+    # emotion_dict = analyse_dataset(emotion_list)
+    # print('analyze train_cleaned txt file done')
+    # print(emotion_dict)
 
-    train_output_file = os.path.join(config.dataset.afn.csv_data, 'train_filted.txt')
-    output_dict = formate_training_list(emotion_list)
-    filted_file_list, filted_bbox_list, \
-    filted_landmark_list, filted_emotion_list = save_training_file(output_dict, train_output_file,
-                                                                   file_list, bbox_list, landmark_list, emotion_list)
-    print('save train_filted txt file done')
+    # train_output_file = os.path.join(config.dataset.afn.csv_data, 'train_filted.txt')
+    # output_dict = formate_training_list(emotion_list)
+    # filted_file_list, filted_bbox_list, \
+    # filted_landmark_list, filted_emotion_list = save_training_file(output_dict, train_output_file,
+    #                                                                file_list, bbox_list, landmark_list, emotion_list)
+    # print('save train_filted txt file done')
 
-    npz_file_path = os.path.join(config.dataset.afn.csv_data, 'train.npz')
-    formate_dataset_npz(filted_file_list, filted_landmark_list, filted_emotion_list, npz_file_path)
-    print('save train_filted npz file done')
+    # npz_file_path = os.path.join(config.dataset.afn.csv_data, 'train.npz')
+    # filted_file_list, bbox_list, filted_landmark_list, filted_emotion_list = load_filename_list(train_output_file)
+    # formate_dataset_npz(filted_file_list, filted_landmark_list, filted_emotion_list, npz_file_path)
+    # print('save train_filted npz file done')
 
-    val_txt_file = os.path.join(config.dataset.afn.csv_data, 'val_c.txt')
+    val_txt_file = os.path.join(config.dataset.afn.csv_data, 'val_cll.txt')
     val_file_list, val_bbox_list, val_landmark_list, val_emotion_list = load_filename_list(val_txt_file)
-    emotion_dict = analyse_dataset(val_emotion_list)
-    print('analyze val_cleaned txt file done')
-    print(emotion_dict)
+    # emotion_dict = analyse_dataset(val_emotion_list)
+    # print('analyze val_cleaned txt file done')
+    # print(emotion_dict)
 
     val_npz_file = os.path.join(config.dataset.afn.csv_data, 'val.npz')
     formate_dataset_npz(val_file_list, val_landmark_list, val_emotion_list, val_npz_file)
